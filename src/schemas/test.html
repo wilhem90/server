@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📊 Lottery Tickets Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          sans-serif;
+      }
+
+      body {
+        background: #f0f4fa;
+        padding: 2rem 1.5rem;
+        display: flex;
+        justify-content: center;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1440px;
+        width: 100%;
+        background: white;
+        border-radius: 28px;
+        box-shadow: 0 20px 48px -12px rgba(0, 20, 40, 0.2);
+        padding: 2rem 1.8rem 2.5rem;
+        transition: all 0.2s;
+      }
+
+      /* ---- header ---- */
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.8rem;
+        gap: 1rem;
+      }
+
+      .header h1 {
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #0b1e30;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .status-badge-group {
+        display: flex;
+        gap: 1.2rem;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        background: #f2f7ff;
+        padding: 0.4rem 1.4rem;
+        border-radius: 60px;
+        color: #1f3a5f;
+      }
+
+      .status-badge-group span {
+        font-weight: 500;
+      }
+      .status-badge-group strong {
+        font-weight: 700;
+        color: #0b2b4a;
+      }
+
+      /* ---- filters ---- */
+      .filters-section {
+        background: #f8fbff;
+        border-radius: 16px;
+        padding: 1.2rem 1.5rem;
+        margin-bottom: 1.8rem;
+        border: 1px solid #e6edf6;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .filter-group label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #5f7a9a;
+      }
+
+      .filter-group input,
+      .filter-group select {
+        padding: 0.5rem 0.8rem;
+        border: 1px solid #dce5f2;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        background: white;
+        color: #0b1e30;
+        transition: 0.15s;
+        width: 100%;
+      }
+
+      .filter-group input:focus,
+      .filter-group select:focus {
+        outline: none;
+        border-color: #1f4973;
+        box-shadow: 0 0 0 3px rgba(31, 73, 115, 0.1);
+      }
+
+      .filter-group input[type="number"] {
+        width: 100%;
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 0.6rem;
+        align-items: center;
+        flex: 0 0 auto;
+      }
+
+      .btn-filter {
+        background: #1f4973;
+        border: none;
+        padding: 0.5rem 1.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: white;
+        cursor: pointer;
+        transition: 0.15s;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .btn-filter:hover {
+        background: #163a5c;
+        transform: translateY(-1px);
+      }
+
+      .btn-filter:active {
+        transform: scale(0.97);
+      }
+
+      .btn-filter-secondary {
+        background: #eef3fc;
+        border: 1px solid #dce5f2;
+        padding: 0.5rem 1.4rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #1f3a5f;
+        cursor: pointer;
+        transition: 0.15s;
+        height: 40px;
+      }
+
+      .btn-filter-secondary:hover {
+        background: #dce6f5;
+      }
+
+      .error-banner {
+        background: #fff0ee;
+        border-left: 5px solid #d14545;
+        padding: 0.8rem 1.4rem;
+        border-radius: 14px;
+        color: #7a2e2e;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 500;
+      }
+
+      .error-banner .close-error {
+        margin-left: auto;
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: #7a2e2e;
+        opacity: 0.7;
+      }
+      .error-banner .close-error:hover {
+        opacity: 1;
+      }
+
+      /* ---- summary cards ---- */
+      .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.2rem;
+        margin-bottom: 2rem;
+      }
+
+      .summary-card {
+        background: #f8fbff;
+        border-radius: 16px;
+        padding: 1.2rem 1.5rem;
+        border: 1px solid #e6edf6;
+        transition: 0.15s;
+      }
+
+      .summary-card:hover {
+        background: #f4f9ff;
+        border-color: #b8cde0;
+      }
+
+      .summary-card .label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: #5f7a9a;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+      }
+
+      .summary-card .value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #0b1e30;
+      }
+
+      .summary-card .value.positive {
+        color: #0f6e4a;
+      }
+
+      .summary-card .value.highlight {
+        color: #1f4973;
+      }
+
+      .summary-card .sub {
+        font-size: 0.75rem;
+        color: #5f7a9a;
+        margin-top: 0.2rem;
+      }
+
+      /* ---- table ---- */
+      .table-responsive {
+        overflow-x: auto;
+        border-radius: 18px;
+        border: 1px solid #e6edf6;
+        background: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        min-width: 700px;
+      }
+
+      th {
+        background: #f8fbff;
+        color: #1f3a5f;
+        font-weight: 600;
+        padding: 0.9rem 0.7rem;
+        text-align: left;
+        border-bottom: 2px solid #dbe2ed;
+        white-space: nowrap;
+      }
+
+      td {
+        padding: 0.8rem 0.7rem;
+        border-bottom: 1px solid #e9eff6;
+        vertical-align: middle;
+        background-color: white;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      .lottery-badge {
+        display: inline-block;
+        background: #eef3fa;
+        padding: 0.2rem 0.8rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        color: #1f4973;
+        text-transform: capitalize;
+      }
+
+      .period-tag {
+        background: #dce5f2;
+        padding: 0.15rem 0.7rem;
+        border-radius: 30px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: #1b3a5c;
+        display: inline-block;
+        margin-left: 0.3rem;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.15rem 0.9rem;
+        border-radius: 40px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: capitalize;
+        background: #eaf0f8;
+        color: #1f3a5f;
+      }
+
+      .status-badge.pending {
+        background: #fff3d6;
+        color: #8d6d1f;
+      }
+
+      .status-badge.cancelled {
+        background: #ffe9e9;
+        color: #b33c3c;
+      }
+
+      .status-badge.won {
+        background: #daf1e4;
+        color: #0f6e4a;
+      }
+
+      .status-badge.lost {
+        background: #b33c3c;
+        color: #ffe9e9;
+      }
+
+      .amount-cell {
+        font-weight: 600;
+        color: #0a1e2e;
+        font-size: 0.9rem;
+      }
+
+      .payout-cell {
+        font-weight: 600;
+        color: #0f6e4a;
+        font-size: 0.9rem;
+      }
+
+      .ticket-num {
+        font-weight: 700;
+        background: #e3eaf3;
+        padding: 0.1rem 0.6rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        display: inline-block;
+      }
+
+      .id-truncate {
+        font-family: "SF Mono", "Fira Code", monospace;
+        font-size: 0.7rem;
+        color: #3a5a7a;
+        background: #eef4fa;
+        padding: 0.1rem 0.5rem;
+        border-radius: 12px;
+        display: inline-block;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: middle;
+        margin-left: 0.2rem;
+      }
+
+      .meta-footer {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        color: #2d4b6e;
+        background: #f5f9ff;
+        padding: 0.7rem 1.6rem;
+        border-radius: 60px;
+      }
+
+      .meta-footer .pagination-info {
+        display: flex;
+        gap: 1.8rem;
+        font-weight: 500;
+      }
+
+      .empty-state {
+        padding: 2.8rem 0;
+        text-align: center;
+        color: #576f8b;
+        font-weight: 450;
+        font-size: 1rem;
+      }
+
+      .loading-row td {
+        text-align: center;
+        padding: 3rem 0;
+        color: #3a5a7a;
+        font-weight: 500;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        border: 3px solid #dce5f2;
+        border-top-color: #1f3a5f;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 0.6rem;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (max-width: 700px) {
+        body {
+          padding: 1rem 0.5rem;
+        }
+        .container {
+          padding: 1.2rem 0.8rem;
+        }
+        .header {
+          flex-direction: column;
+          align-items: start;
+        }
+        .status-badge-group {
+          padding: 0.3rem 1rem;
+        }
+        .summary-cards {
+          grid-template-columns: 1fr;
+        }
+        .filters-section {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .filter-actions {
+          flex-direction: column;
+        }
+        .btn-filter,
+        .btn-filter-secondary {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- header -->
+      <div class="header">
+        <h1>📈👁️ Pasyans</h1>
+        <div class="header-actions">
+          <div class="status-badge-group" id="metaBadge">
+            <span>📋 <strong id="totalRecords">—</strong> total</span>
+            <span
+              >📄 page <strong id="currentPage">—</strong> ·
+              <strong id="pageLimit">—</strong></span
+            >
+            <span>🕒 <span id="updateTime">—</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- filters -->
+      <div class="filters-section">
+        <div class="filter-group">
+          <label for="startDate">Start Date</label>
+          <input type="date" id="startDate" value="2026-07-22" />
+        </div>
+        <div class="filter-group">
+          <label for="endDate">End Date</label>
+          <input type="date" id="endDate" value="2026-07-25" />
+        </div>
+        <div class="filter-group">
+          <label for="limitSelect">Limit</label>
+          <select id="limitSelect">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="pageSelect">Page</label>
+          <input type="number" id="pageSelect" value="1" min="1" />
+        </div>
+        <div class="filter-group">
+          <label for="periodSelect">Period</label>
+          <select id="periodSelect">
+            <option value="">All</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Night</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn-filter" id="applyFiltersBtn">
+            🔍 Apply Filters
+          </button>
+          <button class="btn-filter-secondary" id="resetFiltersBtn">
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <!-- error banner -->
+      <div id="errorBanner" class="error-banner" style="display: none">
+        ⚠️ <span id="errorMessage">Something went wrong</span>
+        <button class="close-error" id="closeErrorBtn">&times;</button>
+      </div>
+
+      <!-- summary cards -->
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="label">💰 Total Sales</div>
+          <div class="value highlight" id="totalSales">$0.00</div>
+          <div class="sub">sum of all ticket amounts</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">🏆 Potential Payout</div>
+          <div class="value positive" id="totalPayout">$0.00</div>
+          <div class="sub">sum of potential payouts</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">🎫 Ticket Count</div>
+          <div class="value" id="ticketCount">0</div>
+          <div class="sub">total tickets in view</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">📊 Avg. Ticket Value</div>
+          <div class="value" id="avgTicketValue">$0.00</div>
+          <div class="sub">average amount per ticket</div>
+        </div>
+      </div>
+
+      <!-- table -->
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th># Ticket</th>
+              <th>Lottery / Period</th>
+              <th>Amount</th>
+              <th>Potential Payout</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody id="ticketBody">
+            <tr class="loading-row">
+              <td colspan="6">
+                <span class="loading-spinner"></span> Loading tickets…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- footer -->
+      <div class="meta-footer">
+        <div>🔹 <span id="recordCountDisplay">0</span> records shown</div>
+        <div class="pagination-info">
+          <span>offset <strong id="offsetDisplay">0</strong></span>
+          <span>| limit <strong id="limitDisplay">10</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // -------- DOM refs --------
+        const tbody = document.getElementById("ticketBody");
+        const totalRecordsEl = document.getElementById("totalRecords");
+        const currentPageEl = document.getElementById("currentPage");
+        const pageLimitEl = document.getElementById("pageLimit");
+        const updateTimeEl = document.getElementById("updateTime");
+        const recordCountDisplay =
+          document.getElementById("recordCountDisplay");
+        const offsetDisplay = document.getElementById("offsetDisplay");
+        const limitDisplay = document.getElementById("limitDisplay");
+
+        // summary elements
+        const totalSalesEl = document.getElementById("totalSales");
+        const totalPayoutEl = document.getElementById("totalPayout");
+        const ticketCountEl = document.getElementById("ticketCount");
+        const avgTicketValueEl = document.getElementById("avgTicketValue");
+
+        // filter elements
+        const startDateInput = document.getElementById("startDate");
+        const endDateInput = document.getElementById("endDate");
+        const limitSelect = document.getElementById("limitSelect");
+        const pageInput = document.getElementById("pageSelect");
+        const periodSelect = document.getElementById("periodSelect");
+        const applyBtn = document.getElementById("applyFiltersBtn");
+        const resetBtn = document.getElementById("resetFiltersBtn");
+
+        const errorBanner = document.getElementById("errorBanner");
+        const errorMessage = document.getElementById("errorMessage");
+        const closeErrorBtn = document.getElementById("closeErrorBtn");
+
+        // -------- API config --------
+        const BASE_URL = "http://localhost:8080/api/bet/tickets";
+
+        const headers = {
+          cookie:
+            "accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4MGE2YzBlZS0yOWU2LTQ2NTctODdiNy03YTc5NGU4MjJiZWYiLCJzZXNzaW9uSWQiOiI4ZWRhOWZmMi1hNDMwLTQ0NGQtOThkMi02NGIyY2ExMjc5OTciLCJkZXZpY2VfaWQiOiI0ODk5OGJlZC05MDZkLTQ1ZjAtODk3Yi1hZDM3NTM2NGI0NGMiLCJpYXQiOjE3NzgzNDc1MjcsImV4cCI6MTc3ODM2NTUyN30.6s5F6BvlqnysHW1UzPEY5IQhX_88j1VLCml0QdBH66s; refreshToken=23b533173e702f8968264b567e6ca46b52ca26cfcc5ba0c91255d3e07ed925869d511daf88cc2efdaaebcf872c382345d5a29653584c51ee3c0cc0c393ce311a",
+          Authorization:
+            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1dWlkIjoiMjVjZGM4NzUtZTc1MC00NDc2LWEzMjMtYTVkYmNlMDliNjdlIiwiZW1haWwiOiJkZXZzaHQyMDI0QGdtYWlsLmNvbSIsIm5hbWUiOiJ3aWxoZW0gd3VuZHQiLCJzdGF0dXMiOiJhY3RpdmUiLCJhY2NvdW50IjoiMjAyNjE5OTkzOSIsImN1cnJlbmN5IjoiQlJMIiwic3RhdHVzV2FsbGV0IjoiYWN0aXZlIiwiaWF0IjoxNzg1MjA2NTcxLCJleHAiOjE3ODc3OTg1NzF9.B9bqLWWImXlhy9MdIcbaqmfuThfXBitmRaSSSK3eLn8",
+        };
+
+        // -------- helpers --------
+        function formatDate(iso) {
+          if (!iso) return "—";
+          try {
+            const d = new Date(iso);
+            return d.toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+          } catch {
+            return iso;
+          }
+        }
+
+        function formatCurrency(amount) {
+          return Number(amount || 0).toLocaleString("pt-BR", {
+            currency: "brl",
+            style: "currency",
+          });
+        }
+
+        function getStatusClass(status) {
+          if (status === "pending") return "pending";
+          if (status === "cancelled") return "cancelled";
+          if (status === "won") return "won";
+          if (status === "lose") return "lose";
+          return "";
+        }
+
+        function buildUrl() {
+          const params = new URLSearchParams();
+          params.append("start_date", startDateInput.value || "");
+          params.append("end_date", endDateInput.value || "");
+          params.append("limit", limitSelect.value || "10");
+          params.append("page", pageInput.value || "1");
+          if (periodSelect.value) {
+            params.append("period", periodSelect.value);
+          }
+          return `${BASE_URL}?${params.toString()}`;
+        }
+
+        function updateMeta(data) {
+          const meta = data.meta || {};
+          totalRecordsEl.textContent = meta.totalRecords ?? "—";
+          currentPageEl.textContent = data.page ?? "—";
+          pageLimitEl.textContent = meta.limit ?? "—";
+          recordCountDisplay.textContent = data.count ?? data.data?.length ?? 0;
+          offsetDisplay.textContent = meta.offset ?? "—";
+          limitDisplay.textContent = meta.limit ?? "—";
+          updateTimeEl.textContent = new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        function updateSummary(tickets) {
+          if (!tickets || tickets.length === 0) {
+            totalSalesEl.textContent = "$0.00";
+            totalPayoutEl.textContent = "$0.00";
+            ticketCountEl.textContent = "0";
+            avgTicketValueEl.textContent = "$0.00";
+            return;
+          }
+
+          let totalSales = 0;
+          let totalPayout = 0;
+          let count = tickets.length;
+
+          tickets.forEach((ticket) => {
+            totalSales += ticket.amount || 0;
+            totalPayout += ticket.potential_payout || 0;
+          });
+
+          const avg = count > 0 ? totalSales / count : 0;
+
+          totalSalesEl.textContent = formatCurrency(totalSales);
+          totalPayoutEl.textContent = formatCurrency(totalPayout);
+          ticketCountEl.textContent = count;
+          avgTicketValueEl.textContent = formatCurrency(avg);
+        }
+
+        function showError(msg) {
+          errorMessage.textContent = msg || "Failed to load tickets.";
+          errorBanner.style.display = "flex";
+        }
+
+        function hideError() {
+          errorBanner.style.display = "none";
+        }
+
+        // -------- render table --------
+        function renderTickets(data) {
+          const tickets = data?.data || [];
+
+          if (tickets.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No tickets found</td></tr>`;
+            updateSummary([]);
+            return;
+          }
+
+          let rows = "";
+          tickets.forEach((ticket) => {
+            const status = ticket.status_bet || "pending";
+            const statusClass = getStatusClass(status);
+            const ticketNum =
+              String(ticket.ticket_number).padStart(3, 0) ?? "—";
+            const lotto = ticket.lottery_name
+              ? ticket.lottery_name.charAt(0).toUpperCase() +
+                ticket.lottery_name.slice(1)
+              : "—";
+            const period = ticket.period || "—";
+            const created = formatDate(ticket.created_at);
+            const shortId = ticket.id ? ticket.id.slice(0, 8) : "";
+            const amount = ticket.amount || 0;
+            const payout = ticket.potential_payout || 0;
+
+            rows += `<tr>
+                    <td>
+                        <span class="ticket-num">#${ticketNum}</span>
+                        <span class="id-truncate" title="${ticket.id || ""}">${shortId}</span>
+                    </td>
+                    <td>
+                        <span class="lottery-badge">${lotto}</span>
+                        <span class="period-tag">${period}</span>
+                    </td>
+                    <td class="amount-cell">${formatCurrency(amount)}</td>
+                    <td class="payout-cell">${formatCurrency(payout)}</td>
+                    <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    <td style="font-size:0.8rem; white-space:nowrap;">${created}</td>
+                </tr>`;
+          });
+          tbody.innerHTML = rows;
+          updateSummary(tickets);
+        }
+
+        // -------- fetch data --------
+        async function fetchTickets() {
+          tbody.innerHTML = `
+                <tr class="loading-row">
+                    <td colspan="6">
+                        <span class="loading-spinner"></span> Loading tickets…
+                    </td>
+                </tr>
+            `;
+          hideError();
+
+          const url = buildUrl();
+
+          try {
+            const response = await fetch(url, {
+              method: "GET",
+              headers: headers,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text().catch(() => "");
+              throw new Error(
+                `HTTP ${response.status} ${response.statusText}${errorText ? " — " + errorText : ""}`,
+              );
+            }
+
+            const data = await response.json();
+
+            console.log(data);
+            if (!data || typeof data !== "object") {
+              throw new Error("Invalid response format");
+            }
+
+            if (data.success === false) {
+              throw new Error(data.message || "API returned error");
+            }
+
+            renderTickets(data);
+            updateMeta(data);
+          } catch (err) {
+            console.error("Fetch error:", err);
+            showError(err.message || "Failed to fetch tickets.");
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-state">⚠️ Could not load tickets</td></tr>`;
+            updateSummary([]);
+          } finally {
+            updateTimeEl.textContent = new Date().toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+          }
+        }
+
+        function formatDateYYYYMMDD(date) {
+          if (!(date instanceof Date) || isNaN(date)) {
+            throw new Error("Invalid Date object");
+          }
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+          const day = String(date.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        }
+
+        const today = new Date();
+        console.log(formatDateYYYYMMDD(today));
+        // -------- reset filters to defaults --------
+        function resetFilters() {
+          const date = new Date();
+
+          startDateInput.value = formatDateYYYYMMDD(date);
+          endDateInput.value = formatDateYYYYMMDD(date);
+          limitSelect.value = "10";
+          pageInput.value = "1";
+          periodSelect.value = "";
+          fetchTickets();
+        }
+
+        // -------- event listeners --------
+        applyBtn.addEventListener("click", fetchTickets);
+        resetBtn.addEventListener("click", resetFilters);
+        closeErrorBtn.addEventListener("click", hideError);
+
+        // Enter key on any filter input triggers search
+        document
+          .querySelectorAll(".filter-group input, .filter-group select")
+          .forEach((el) => {
+            el.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                fetchTickets();
+              }
+            });
+          });
+
+        // -------- initial load --------
+        fetchTickets();
+      })();
+    </script>
+  </body>
+</html>

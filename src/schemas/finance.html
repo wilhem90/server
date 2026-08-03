@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>📊 Transaction Operations</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: #f0f4fa;
+            padding: 2rem 1.5rem;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1440px;
+            width: 100%;
+            background: white;
+            border-radius: 28px;
+            box-shadow: 0 20px 48px -12px rgba(0, 20, 40, 0.20);
+            padding: 2rem 1.8rem 2.5rem;
+            transition: all 0.2s;
+        }
+
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.8rem;
+            gap: 1rem;
+        }
+
+        .header h1 {
+            font-size: 1.9rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #0b1e30;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-badge-group {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            background: #f2f7ff;
+            padding: 0.4rem 1.4rem;
+            border-radius: 60px;
+            color: #1f3a5f;
+        }
+
+        .status-badge-group span {
+            font-weight: 500;
+        }
+        .status-badge-group strong {
+            font-weight: 700;
+            color: #0b2b4a;
+        }
+
+        /* ---- summary cards ---- */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: #f8fbff;
+            border-radius: 16px;
+            padding: 1.2rem 1.5rem;
+            border: 1px solid #e6edf6;
+            transition: 0.15s;
+        }
+
+        .summary-card:hover {
+            background: #f4f9ff;
+            border-color: #b8cde0;
+        }
+
+        .summary-card .label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #5f7a9a;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .summary-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #0b1e30;
+        }
+
+        .summary-card .value.positive {
+            color: #0f6e4a;
+        }
+
+        .summary-card .value.negative {
+            color: #b33c3c;
+        }
+
+        .summary-card .value.highlight {
+            color: #1f4973;
+        }
+
+        .summary-card .sub {
+            font-size: 0.75rem;
+            color: #5f7a9a;
+            margin-top: 0.2rem;
+        }
+
+        /* ---- table ---- */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 18px;
+            border: 1px solid #e6edf6;
+            background: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 700px;
+        }
+
+        th {
+            background: #f8fbff;
+            color: #1f3a5f;
+            font-weight: 600;
+            padding: 0.9rem 0.7rem;
+            text-align: left;
+            border-bottom: 2px solid #dbe2ed;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.8rem 0.7rem;
+            border-bottom: 1px solid #e9eff6;
+            vertical-align: middle;
+            background-color: white;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .operation-badge {
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: capitalize;
+        }
+
+        .operation-badge.deposit {
+            background: #daf1e4;
+            color: #0f6e4a;
+        }
+
+        .operation-badge.withdrawal {
+            background: #ffe9e9;
+            color: #b33c3c;
+        }
+
+        .operation-badge.bet {
+            background: #fff3d6;
+            color: #8d6d1f;
+        }
+
+        .operation-badge.refunded {
+            background: #e3eaf3;
+            color: #1f4973;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.15rem 0.9rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: capitalize;
+            background: #eaf0f8;
+            color: #1f3a5f;
+        }
+
+        .status-badge.approved {
+            background: #daf1e4;
+            color: #0f6e4a;
+        }
+
+        .status-badge.completed {
+            background: #daf1e4;
+            color: #0f6e4a;
+        }
+
+        .status-badge.pending {
+            background: #fff3d6;
+            color: #8d6d1f;
+        }
+
+        .status-badge.cancelled {
+            background: #ffe9e9;
+            color: #b33c3c;
+        }
+
+        .status-badge.lost {
+            background: #ffe9e9;
+            color: #b33c3c;
+        }
+
+        .amount-cell {
+            font-weight: 600;
+            color: #0a1e2e;
+            font-size: 0.9rem;
+        }
+
+        .amount-cell.positive {
+            color: #0f6e4a;
+        }
+
+        .amount-cell.negative {
+            color: #b33c3c;
+        }
+
+        .id-truncate {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.7rem;
+            color: #3a5a7a;
+            background: #eef4fa;
+            padding: 0.1rem 0.5rem;
+            border-radius: 12px;
+            display: inline-block;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .parent-id {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.65rem;
+            color: #5f7a9a;
+            background: #f5f8fc;
+            padding: 0.1rem 0.4rem;
+            border-radius: 8px;
+            display: inline-block;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .meta-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #2d4b6e;
+            background: #f5f9ff;
+            padding: 0.7rem 1.6rem;
+            border-radius: 60px;
+        }
+
+        .meta-footer .pagination-info {
+            display: flex;
+            gap: 1.8rem;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            padding: 2.8rem 0;
+            text-align: center;
+            color: #576f8b;
+            font-weight: 450;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 1rem 0.5rem; }
+            .container { padding: 1.2rem 0.8rem; }
+            .header { flex-direction: column; align-items: start; }
+            .status-badge-group { padding: 0.3rem 1rem; }
+            .summary-cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- header -->
+    <div class="header">
+        <h1>💰 Transaction Operations</h1>
+        <div class="header-actions">
+            <div class="status-badge-group">
+                <span>📋 <strong id="totalRecords">—</strong> total</span>
+                <span>🕒 <span id="updateTime">—</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- summary cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="label">💵 Total Volume</div>
+            <div class="value highlight" id="totalVolume">$0.00</div>
+            <div class="sub">sum of all transactions</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">📈 Total Deposits</div>
+            <div class="value positive" id="totalDeposits">$0.00</div>
+            <div class="sub">all deposit operations</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">📉 Total Withdrawals</div>
+            <div class="value negative" id="totalWithdrawals">$0.00</div>
+            <div class="sub">all withdrawal operations</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">🎯 Total Bets</div>
+            <div class="value" id="totalBets">$0.00</div>
+            <div class="sub">all bet operations</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">🔄 Refunded</div>
+            <div class="value highlight" id="totalRefunded">$0.00</div>
+            <div class="sub">refunded operations</div>
+        </div>
+    </div>
+
+    <!-- table -->
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Operation</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Parent ID</th>
+                    <th>Created</th>
+                </tr>
+            </thead>
+            <tbody id="transactionBody">
+                <!-- rows injected by javascript -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- footer -->
+    <div class="meta-footer">
+        <div>🔹 <span id="recordCountDisplay">0</span> records shown</div>
+        <div class="pagination-info">
+            <span>wallet: <strong id="walletId">—</strong></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        // -------- DOM refs --------
+        const tbody = document.getElementById('transactionBody');
+        const totalRecordsEl = document.getElementById('totalRecords');
+        const updateTimeEl = document.getElementById('updateTime');
+        const recordCountDisplay = document.getElementById('recordCountDisplay');
+        const walletIdEl = document.getElementById('walletId');
+
+        // summary elements
+        const totalVolumeEl = document.getElementById('totalVolume');
+        const totalDepositsEl = document.getElementById('totalDeposits');
+        const totalWithdrawalsEl = document.getElementById('totalWithdrawals');
+        const totalBetsEl = document.getElementById('totalBets');
+        const totalRefundedEl = document.getElementById('totalRefunded');
+
+        // -------- JSON data --------
+        const data = {
+            "success": true,
+            "data": [
+                {
+                    "id": "37e6e416-4eee-43ed-895a-caf0ee882754",
+                    "operation_type": "withdrawal",
+                    "created_at": "2026-07-25T01:35:13.2908+00:00",
+                    "status": "approved",
+                    "amount": 152,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T01:35:38.866294+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "fa848f81-cf28-4618-b7a9-4e188d54a46f",
+                    "operation_type": "deposit",
+                    "created_at": "2026-07-25T01:34:31.04942+00:00",
+                    "status": "approved",
+                    "amount": 50,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T01:34:49.251496+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "a025039c-5aff-42ea-9cb4-6d33c7aad985",
+                    "operation_type": "refunded",
+                    "created_at": "2026-07-25T00:53:50.135475+00:00",
+                    "status": "completed",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:53:50.135475+00:00",
+                    "is_cancelled": false,
+                    "parent_id": "57235b38-0e17-4b6f-8c76-058b125bed3d"
+                },
+                {
+                    "id": "7ad18ca4-af1b-4b1c-8d8a-6e63946b10c6",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:34:50.354468+00:00",
+                    "status": "lost",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:56:18.051922+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "cb44e6e0-1c6a-4ae5-b19f-f429dc70356e",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:34:50.349277+00:00",
+                    "status": "pending",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:34:50.349277+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "57235b38-0e17-4b6f-8c76-058b125bed3d",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:32:34.109396+00:00",
+                    "status": "cancelled",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:53:50.135475+00:00",
+                    "is_cancelled": true,
+                    "parent_id": null
+                },
+                {
+                    "id": "d72941bf-85fa-4309-9878-74f7027dac46",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:31:14.532738+00:00",
+                    "status": "pending",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:31:14.532738+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "7d142e62-4828-46a6-bc06-833d14101bdb",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:29:52.270821+00:00",
+                    "status": "pending",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:29:52.270821+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "7ce11517-26b9-4d64-93da-f69e3c574540",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:28:07.515682+00:00",
+                    "status": "lost",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:56:18.051922+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                },
+                {
+                    "id": "7f6387ac-12dd-47b9-94cc-7f29b26f847d",
+                    "operation_type": "bet",
+                    "created_at": "2026-07-25T00:27:10.087123+00:00",
+                    "status": "pending",
+                    "amount": 138,
+                    "wallet_id": "b5aeb7a9-ad31-4a31-8b67-507ee9d039ea",
+                    "updated_at": "2026-07-25T00:27:10.087123+00:00",
+                    "is_cancelled": false,
+                    "parent_id": null
+                }
+            ]
+        };
+
+        // -------- helpers --------
+        function formatDate(iso) {
+            if (!iso) return '—';
+            try {
+                const d = new Date(iso);
+                return d.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+            } catch {
+                return iso;
+            }
+        }
+
+        function formatCurrency(amount) {
+            return '$' + (amount || 0).toFixed(2);
+        }
+
+        function getOperationClass(type) {
+            const map = {
+                'deposit': 'deposit',
+                'withdrawal': 'withdrawal',
+                'bet': 'bet',
+                'refunded': 'refunded'
+            };
+            return map[type] || '';
+        }
+
+        function getStatusClass(status) {
+            const map = {
+                'approved': 'approved',
+                'completed': 'completed',
+                'pending': 'pending',
+                'cancelled': 'cancelled',
+                'lost': 'lost'
+            };
+            return map[status] || '';
+        }
+
+        function getAmountClass(operationType) {
+            if (operationType === 'withdrawal') return 'negative';
+            if (operationType === 'deposit' || operationType === 'refunded') return 'positive';
+            return '';
+        }
+
+        function getAmountPrefix(operationType) {
+            if (operationType === 'withdrawal') return '-';
+            if (operationType === 'deposit' || operationType === 'refunded') return '+';
+            return '';
+        }
+
+        // -------- render table --------
+        function renderTransactions() {
+            const transactions = data.data || [];
+
+            if (transactions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No transactions found</td></tr>`;
+                updateSummary([]);
+                return;
+            }
+
+            // Update wallet ID from first item
+            if (transactions.length > 0 && transactions[0].wallet_id) {
+                walletIdEl.textContent = transactions[0].wallet_id.slice(0, 8) + '...';
+            }
+
+            let rows = '';
+            transactions.forEach((tx) => {
+                const operation = tx.operation_type || '—';
+                const status = tx.status || '—';
+                const amount = tx.amount || 0;
+                const created = formatDate(tx.created_at);
+                const shortId = tx.id ? tx.id.slice(0, 8) : '';
+                const parentId = tx.parent_id ? tx.parent_id.slice(0, 8) : null;
+                const opClass = getOperationClass(operation);
+                const statusClass = getStatusClass(status);
+                const amountClass = getAmountClass(operation);
+                const prefix = getAmountPrefix(operation);
+
+                rows += `<tr>
+                    <td>
+                        <span class="id-truncate" title="${tx.id || ''}">${shortId}</span>
+                    </td>
+                    <td>
+                        <span class="operation-badge ${opClass}">${operation}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${statusClass}">${status}</span>
+                    </td>
+                    <td class="amount-cell ${amountClass}">
+                        ${prefix}${formatCurrency(amount)}
+                    </td>
+                    <td>
+                        ${parentId ? `<span class="parent-id" title="${tx.parent_id}">${parentId}</span>` : '—'}
+                    </td>
+                    <td style="font-size:0.8rem; white-space:nowrap;">${created}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = rows;
+
+            // Update summary
+            updateSummary(transactions);
+        }
+
+        // -------- update summary --------
+        function updateSummary(transactions) {
+            if (!transactions || transactions.length === 0) {
+                totalVolumeEl.textContent = '$0.00';
+                totalDepositsEl.textContent = '$0.00';
+                totalWithdrawalsEl.textContent = '$0.00';
+                totalBetsEl.textContent = '$0.00';
+                totalRefundedEl.textContent = '$0.00';
+                totalRecordsEl.textContent = '0';
+                recordCountDisplay.textContent = '0';
+                return;
+            }
+
+            let totalVolume = 0;
+            let totalDeposits = 0;
+            let totalWithdrawals = 0;
+            let totalBets = 0;
+            let totalRefunded = 0;
+
+            transactions.forEach(tx => {
+                const amount = tx.amount || 0;
+                totalVolume += amount;
+
+                switch (tx.operation_type) {
+                    case 'deposit':
+                        totalDeposits += amount;
+                        break;
+                    case 'withdrawal':
+                        totalWithdrawals += amount;
+                        break;
+                    case 'bet':
+                        totalBets += amount;
+                        break;
+                    case 'refunded':
+                        totalRefunded += amount;
+                        break;
+                }
+            });
+
+            totalVolumeEl.textContent = formatCurrency(totalVolume);
+            totalDepositsEl.textContent = formatCurrency(totalDeposits);
+            totalWithdrawalsEl.textContent = formatCurrency(totalWithdrawals);
+            totalBetsEl.textContent = formatCurrency(totalBets);
+            totalRefundedEl.textContent = formatCurrency(totalRefunded);
+
+            totalRecordsEl.textContent = transactions.length;
+            recordCountDisplay.textContent = transactions.length;
+            updateTimeEl.textContent = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // -------- initial render --------
+        renderTransactions();
+
+    })();
+</script>
+
+</body>
+</html>

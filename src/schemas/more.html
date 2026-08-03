@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transaction History</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f4f6fa;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px 30px 40px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 28px;
+            border-bottom: 1px solid #e9edf2;
+            padding-bottom: 18px;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            background: #f8fafc;
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 28px;
+            align-items: center;
+        }
+
+        .filters label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #334155;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filters input,
+        .filters select {
+            padding: 6px 12px;
+            border: 1px solid #d1d9e6;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fff;
+            color: #1e293b;
+        }
+
+        .filters input:focus,
+        .filters select:focus {
+            outline: 2px solid #3b82f6;
+            border-color: transparent;
+        }
+
+        .btn-refresh {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-left: auto;
+        }
+
+        .btn-refresh:hover {
+            background: #2563eb;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid #e9edf2;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 700px;
+        }
+
+        thead {
+            background: #f1f5f9;
+        }
+
+        th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 600;
+            color: #334155;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #edf2f7;
+            color: #0f172a;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+
+        .badge-deposit {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-withdrawal {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .badge-transfer {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge-payment {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-pending {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        .badge-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .amount-credit {
+            color: #16a34a;
+            font-weight: 600;
+        }
+        .amount-debit {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .status-loading {
+            text-align: center;
+            padding: 50px 0;
+            color: #64748b;
+        }
+
+        .status-error {
+            text-align: center;
+            padding: 40px 0;
+            color: #dc2626;
+            background: #fef2f2;
+            border-radius: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 0;
+            color: #94a3b8;
+        }
+
+        .meta-info {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 16px;
+            }
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn-refresh {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📋 Transaction History</h1>
+        <div class="subtitle">All movements from your wallet</div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <label>
+                Type
+                <select id="filterType">
+                    <option value="">All</option>
+                    <option value="deposit">Deposit</option>
+                    <option value="withdrawal">Withdrawal</option>
+                    <option value="transfer">Transfer</option>
+                    <option value="payment">Payment</option>
+                </select>
+            </label>
+            <label>
+                Start
+                <input type="date" id="startDate" value="2026-07-01" />
+            </label>
+            <label>
+                End
+                <input type="date" id="endDate" value="2026-07-30" />
+            </label>
+            <button class="btn-refresh" id="refreshBtn">⟳ Refresh</button>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Method</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Balance</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsBody">
+                    <tr>
+                        <td colspan="7" class="status-loading">⏳ Loading transactions…</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="meta-info">
+            <span id="recordCount">0 records</span>
+            <span id="totalAmount">Total: R$ 0,00</span>
+        </div>
+    </div>
+
+    <script>
+        // ─── CONFIG ───────────────────────────────────────────────────────────
+        const BASE_URL = 'http://localhost:8080/api/transaction/history';
+
+        // ─── DOM refs ────────────────────────────────────────────────────────
+        const tbody = document.getElementById('transactionsBody');
+        const filterType = document.getElementById('filterType');
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const recordCount = document.getElementById('recordCount');
+        const totalAmount = document.getElementById('totalAmount');
+
+        // ─── fetch data ──────────────────────────────────────────────────────
+        async function fetchTransactions() {
+            // build URL with current filter values
+            const type = filterType.value;
+            const start = startDate.value;
+            const end = endDate.value;
+
+            const url = `${BASE_URL}?type=${encodeURIComponent(type)}&start_date=${start}&end_date=${end}`;
+
+            // same headers as your snippet
+            const options = {
+                method: 'GET',
+                headers: {
+                    'cookie': 'accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4MGE2YzBlZS0yOWU2LTQ2NTctODdiNy03YTc5NGU4MjJiZWYiLCJzZXNzaW9uSWQiOiI4ZWRhOWZmMi1hNDMwLTQ0NGQtOThkMi02NGIyY2ExMjc5OTciLCJkZXZpY2VfaWQiOiI0ODk5OGJlZC05MDZkLTQ1ZjAtODk3Yi1hZDM3NTM2NGI0NGMiLCJpYXQiOjE3NzgzNDc1MjcsImV4cCI6MTc3ODM2NTUyN30.6s5F6BvlqnysHW1UzPEY5IQhX_88j1VLCml0QdBH66s; refreshToken=23b533173e702f8968264b567e6ca46b52ca26cfcc5ba0c91255d3e07ed925869d511daf88cc2efdaaebcf872c382345d5a29653584c51ee3c0cc0c393ce311a',
+                    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1dWlkIjoiMjVjZGM4NzUtZTc1MC00NDc2LWEzMjMtYTVkYmNlMDliNjdlIiwiZW1haWwiOiJkZXZzaHQyMDI0QGdtYWlsLmNvbSIsIm5hbWUiOiJ3aWxoZW0gd3VuZHQiLCJzdGF0dXMiOiJhY3RpdmUiLCJhY2NvdW50IjoiMjAyNjE5OTkzOSIsImN1cnJlbmN5IjoiQlJMIiwic3RhdHVzV2FsbGV0IjoiYWN0aXZlIiwiaWF0IjoxNzg1MjA2NTcxLCJleHAiOjE3ODc3OTg1NzF9.B9bqLWWImXlhy9MdIcbaqmfuThfXBitmRaSSSK3eLn8'
+                }
+            };
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status} – ${response.statusText}`);
+                }
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                throw error;
+            }
+        }
+
+        // ─── render ──────────────────────────────────────────────────────────
+        function renderTransactions(data) {
+            // clear table
+            tbody.innerHTML = '';
+
+            // check success & data
+            if (!data || !data.success || !Array.isArray(data.data) || data.data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">📭 No transactions found for this period</td>
+                    </tr>
+                `;
+                recordCount.textContent = '0 records';
+                totalAmount.textContent = 'Total: R$ 0,00';
+                return;
+            }
+
+            const transactions = data.data;
+            let total = 0;
+
+            transactions.forEach((tx) => {
+                const tr = document.createElement('tr');
+
+                // ── date ──
+                const dateCell = document.createElement('td');
+                const rawDate = tx.created_at || '';
+                let displayDate = rawDate;
+                if (rawDate) {
+                    try {
+                        const d = new Date(rawDate);
+                        if (!isNaN(d)) {
+                            displayDate = d.toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        }
+                    } catch (_) { /* keep raw */ }
+                }
+                dateCell.textContent = displayDate;
+                tr.appendChild(dateCell);
+
+                // ── type (badge) ──
+                const typeCell = document.createElement('td');
+                const type = tx.type || '';
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge badge-${type.toLowerCase()}`;
+                typeBadge.textContent = type || '—';
+                typeCell.appendChild(typeBadge);
+                tr.appendChild(typeCell);
+
+                // ── method_payment ──
+                const methodCell = document.createElement('td');
+                methodCell.textContent = tx.method_payment || '—';
+                tr.appendChild(methodCell);
+
+                // ── description ──
+                const descCell = document.createElement('td');
+                descCell.textContent = tx.description || '—';
+                tr.appendChild(descCell);
+
+                // ── amount ──
+                const amountCell = document.createElement('td');
+                const amount = Number(tx.amount) || 0;
+                const isCredit = tx.nature === 'credit';
+                const sign = isCredit ? '+' : '−';
+                const formatted = (amount).toFixed(2).replace('.', ',');
+                amountCell.textContent = `${sign} R$ ${formatted}`;
+                amountCell.className = isCredit ? 'amount-credit' : 'amount-debit';
+                tr.appendChild(amountCell);
+
+                // update total (only credit for total? let's sum absolute or credit? we'll show credit total)
+                if (isCredit) total += amount;
+
+                // ── balance ──
+                const balanceCell = document.createElement('td');
+                const balance = Number(tx.balance_after) || 0;
+                balanceCell.textContent = `R$ ${(balance).toFixed(2).replace('.', ',')}`;
+                tr.appendChild(balanceCell);
+
+                // ── status (badge) ──
+                const statusCell = document.createElement('td');
+                const status = tx.status || '';
+                const statusBadge = document.createElement('span');
+                statusBadge.className = `badge badge-${status.toLowerCase()}`;
+                statusBadge.textContent = status || '—';
+                statusCell.appendChild(statusBadge);
+                tr.appendChild(statusCell);
+
+                tbody.appendChild(tr);
+            });
+
+            // update meta
+            recordCount.textContent = `${transactions.length} records`;
+            const totalReais = (total).toFixed(2).replace('.', ',');
+            totalAmount.textContent = `Total credits: R$ ${totalReais}`;
+        }
+
+        // ─── load & handle errors ──────────────────────────────────────────
+        async function loadTransactions() {
+            // show loading state
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="status-loading">⏳ Loading transactions…</td>
+                </tr>
+            `;
+            recordCount.textContent = '…';
+            totalAmount.textContent = 'Total: …';
+
+            try {
+                const result = await fetchTransactions();
+                renderTransactions(result);
+            } catch (err) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="status-error">
+                            ❌ Error loading data<br />
+                            <span style="font-size:13px;color:#64748b;">${err.message}</span>
+                        </td>
+                    </tr>
+                `;
+                recordCount.textContent = 'Error';
+                totalAmount.textContent = 'Total: —';
+            }
+        }
+
+        // ─── event listeners ──────────────────────────────────────────────
+        refreshBtn.addEventListener('click', loadTransactions);
+
+        // also reload when filters change (optional – uncomment if you want auto)
+        filterType.addEventListener('change', loadTransactions);
+        startDate.addEventListener('change', loadTransactions);
+        endDate.addEventListener('change', loadTransactions);
+
+        // ─── initial load ──────────────────────────────────────────────────
+        loadTransactions();
+    </script>
+
+</body>
+</html>
