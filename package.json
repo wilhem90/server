@@ -12,7 +12,6 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
-    "morgan": "^1.11.0",
     "nodemon": "^3.1.14"
   },
   "dependencies": {
@@ -24,6 +23,7 @@
     "express-rate-limit": "^8.5.2",
     "firebase": "^12.17.0",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
     "nodemailer": "^9.0.3",
     "supabase": "^2.111.0",
     "uuid": "^14.0.1",

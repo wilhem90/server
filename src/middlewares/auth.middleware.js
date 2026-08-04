@@ -4,7 +4,6 @@ import { loginUserSchema } from "../schemas/user.schema.js";
 import z from "zod";
 import { linkValidateEmail } from "../mails/linkValidateEmail.js";
 import { checkTokenListFromSupaBase } from "../db/auth.db.js";
-import { token } from "morgan";
 import sendEmail from "../configs/nodemailer.js";
 import tokenExpiredEmail from "../mails/templateTokenExpired.js";
 import { getUserAndWalletByEmailUserNameDocumentIdFromSupabase } from "../db/user.db.js";
