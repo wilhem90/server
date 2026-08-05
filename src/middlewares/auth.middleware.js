@@ -17,6 +17,7 @@ const refreshToken = async (data) => {
 
 const privateRoute = async (req, res, next) => {
   const token = String(req.headers.authorization).split(" ")[1];
+
   
   if (!token) {
     return res.status(401).json({
@@ -24,6 +25,7 @@ const privateRoute = async (req, res, next) => {
       message: "Not authorized.",
     });
   }
+  
   
   try {
     const checkToken = jwt.verify(token, process.env.JWT_SECRET);

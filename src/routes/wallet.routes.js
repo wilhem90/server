@@ -4,6 +4,6 @@ import { privateRoute } from "../middlewares/auth.middleware.js";
 
 const walletRoutes = express.Router();
 walletRoutes.get("/balance", privateRoute, showBalance);
-walletRoutes.get("/extract-wallet", showBalance);
+walletRoutes.get("/extract-wallet", privateRoute, showBalance);
 
 export default walletRoutes;

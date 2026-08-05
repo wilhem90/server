@@ -88,11 +88,10 @@ const getUserTransactionFromSupabase = async (
   offset,
 ) => {
   const wallets = await getWalletUserWithId(authenticatedUserId);
-  const wallet_id = wallets.data.id;
-  console.log(wallet_id);
-
+  const wallet_id = wallets.data?.id;
   let startDate;
   let endDate;
+
 
   // 1) Garante que limit e offset sejam números válidos
   const pageLimit = limit ? parseInt(limit, 10) : 10;
