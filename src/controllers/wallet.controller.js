@@ -7,10 +7,10 @@ const showBalance = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        balance: refBalance?.balance || 0,
-        account: refBalance?.account,
-        currency: refBalance?.currency,
-        status: refBalance?.status,
+        balance: refBalance.data?.balance || 0,
+        account: refBalance.data?.number_account,
+        currency: refBalance.data.currency,
+        status: refBalance.data?.status,
       },
     });
   } catch (error) {

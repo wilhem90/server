@@ -21,9 +21,7 @@ const showBalanceFromSupabase = async (id) => {
 
   return {
     success: true,
-    account: userWallet.number_account,
-    balance: userWallet.balance || 0,
-    currency: userWallet.currency || "BRL",
+    data: userWallet,
   };
 };
 
