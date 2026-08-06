@@ -183,13 +183,15 @@ const reviewTransaction = async (req, res) => {
 const transactionHistory = async (req, res) => {
   try {
     // Implement the logic to fetch transaction history from Supabase
-    const { type, start_date, end_date } = req.query;
+    const { type, start_date, end_date, limit, offset } = req.query;
 
     const refTransactionHistory = await getUserTransactionFromSupabase(
       req.user.uuid,
       type,
       start_date,
       end_date,
+      limit,
+      offset,
     );
 
     if (!refTransactionHistory.success) {
