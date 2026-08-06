@@ -8,8 +8,9 @@ const showBalance = async (req, res) => {
       success: true,
       data: {
         balance: refBalance?.balance || 0,
-        account: refBalance.account,
-        currency: refBalance.currency,
+        account: refBalance?.account,
+        currency: refBalance?.currency,
+        status: refBalance?.status,
       },
     });
   } catch (error) {
