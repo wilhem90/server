@@ -152,7 +152,6 @@ const getAllSortedFromSupabase = async ({
   limit,
   offset,
 }) => {
-  console.log(startDate, endDate, lotteryName, limit, offset);
 
   const query = supabase
     .from("winning_numbers")
