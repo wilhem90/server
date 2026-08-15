@@ -133,7 +133,7 @@ const getTickets = async (req, res) => {
     // Chamada unificada do helper que limpa, formata e aplica o fuso horário do Haiti
     const { startDate, endDate } = getHaitiDayBounds(
       formatDateToISOInput(start_date),
-      formatDateToISOInput(end_date),
+      formatDateToISOInput(end_date || start_date),
     );
 
     console.log(startDate, endDate);
