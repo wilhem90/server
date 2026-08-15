@@ -7,6 +7,10 @@ import {
   getLotteriesFromSupabase,
   runLotteryDrawFromSupabase,
 } from "../db/bet.db.js";
+import {
+  formatDateToISOInput,
+  getHaitiDayBounds,
+} from "../helpers/dateHelpers.js";
 
 // Create ticket
 const createBet = async (req, res) => {
@@ -105,7 +109,7 @@ const createBet = async (req, res) => {
   }
 };
 
-//All tickets
+// All tickets
 const getTickets = async (req, res) => {
   try {
     // 1. Extração dos filtros da URL
@@ -126,24 +130,13 @@ const getTickets = async (req, res) => {
       });
     }
 
-    // 3. CORREÇÃO DA NORMALIZAÇÃO: Limpeza de variáveis fantasmas (targetDate)
-    let startDate;
-    let endDate;
+    // Chamada unificada do helper que limpa, formata e aplica o fuso horário do Haiti
+    const { startDate, endDate } = getHaitiDayBounds(
+      formatDateToISOInput(start_date),
+      formatDateToISOInput(end_date),
+    );
 
-    if (end_date) {
-      // Converte a data inicial para o primeiro milissegundo do dia
-      const sDate = new Date(start_date);
-      startDate = new Date(sDate.setHours(0, 0, 0, 0)).toISOString();
-
-      // Converte a data final para o ÚLTIMO milissegundo do dia
-      const eDate = new Date(end_date);
-      endDate = new Date(eDate.setHours(23, 59, 59, 999)).toISOString();
-    } else {
-      // Se enviou apenas start_date, filtra o dia inteiro dele
-      const targetDate = new Date(start_date);
-      startDate = new Date(targetDate.setHours(0, 0, 0, 0)).toISOString();
-      endDate = new Date(targetDate.setHours(23, 59, 59, 999)).toISOString();
-    }
+    console.log(startDate, endDate);
 
     // 4. Tratamento matemático da Paginação (Page -> Offset)
     const pageLimit = limit ? parseInt(limit, 10) : 10;
@@ -153,8 +146,8 @@ const getTickets = async (req, res) => {
     // 5. Chamada unificada passando os parâmetros mapeados por chaves {}
     const tickets = await getAllBetLotteriesFromSupabase({
       uuid: req.user.uuid,
-      startDate,
-      endDate,
+      startDate, // String no formato ISO travada no início do dia do Haiti
+      endDate, // String no formato ISO travada no fim do dia do Haiti
       lotteryName,
       limit: pageLimit,
       offset: pageOffset,
@@ -173,7 +166,7 @@ const getTickets = async (req, res) => {
       success: true,
       count: tickets.data?.length || 0,
       page: currentPage,
-      meta: tickets.meta, // Retorna os dados de paginação vindos do banco
+      meta: tickets.meta,
       data: tickets.data,
     });
   } catch (error) {

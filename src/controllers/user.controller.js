@@ -73,7 +73,9 @@ const loginUser = async (req, res) => {
   try {
     // 1. Busca usuário e carteira juntos
     const userResult =
-      await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
+      await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(
+        String(email).toLowerCase(),
+      );
     if (!userResult.success) {
       return res.status(400).json({
         success: false,

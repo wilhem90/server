@@ -29,6 +29,7 @@ const createBetFromSupabase = async (
   return { success: true, ticketRef: data };
 };
 
+//Buscando tickets
 const getAllBetLotteriesFromSupabase = async ({
   uuid,
   startDate,
@@ -41,44 +42,58 @@ const getAllBetLotteriesFromSupabase = async ({
 }) => {
   try {
     if (!uuid) {
-      return { success: false, error: "O parâmetro uuid é obrigatório." };
+      return {
+        success: false,
+        error: "O parâmetro uuid é obrigatório.",
+      };
     }
 
-    // 1) CORREÇÃO DO JOIN: bets -> statements -> wallets (através do user_id)
-    // Usamos statements!inner para filtrar apenas as apostas da carteira do usuário logado
     let query = supabase
       .from("bets")
       .select("*, statements!inner(wallet_id, wallets!inner(user_id))", {
         count: "exact",
       })
-      .eq("statements.wallets.user_id", uuid)
-      .gte("created_at", startDate)
-      .lte("created_at", endDate);
+      .eq("statements.wallets.user_id", uuid);
 
-    // 2) Filtros dinâmicos opcionais
+    // Filtro de período
+    if (startDate) {
+      query = query.gte("created_at", startDate);
+    }
+
+    if (endDate) {
+      query = query.lt("created_at", endDate);
+    }
+
+    // Filtros opcionais
     if (lotteryName) {
       query = query.eq("lottery_name", lotteryName);
     }
+
     if (period) {
       query = query.eq("period", period);
     }
+
     if (ticketId) {
       query = query.eq("ticket_number", ticketId);
     }
 
-    // 3) Paginação e Ordenação
+    // Paginação + ordenação
     query = query
-      .range(offset, offset + limit - 1)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
 
     if (error) {
       console.error("Erro Supabase:", error.message);
-      return { success: false, error: error.message };
+
+      return {
+        success: false,
+        error: error.message,
+      };
     }
 
-    // 4) Limpa os nós de join internos para o front-end receber um objeto limpo
+    // Remove dados internos do JOIN
     const cleanData = data
       ? data.map(({ statements, ...ticket }) => ticket)
       : [];
@@ -87,13 +102,19 @@ const getAllBetLotteriesFromSupabase = async ({
       success: true,
       data: cleanData,
       meta: {
-        totalRecords: count,
+        totalRecords: count ?? 0,
         limit,
         offset,
+        hasMore: offset + cleanData.length < (count ?? 0),
       },
     };
   } catch (err) {
-    return { success: false, error: err.message };
+    console.error("Erro inesperado:", err);
+
+    return {
+      success: false,
+      error: err.message,
+    };
   }
 };
 
@@ -152,7 +173,6 @@ const getAllSortedFromSupabase = async ({
   limit,
   offset,
 }) => {
-
   const query = supabase
     .from("winning_numbers")
     .select("*")
