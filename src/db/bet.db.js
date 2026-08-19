@@ -183,6 +183,56 @@ const getAllSortedFromSupabase = async ({
     data,
   };
 };
+
+//Get full bets report - Mantido original (perfeito usando RPC)
+const getFullBetsReportFromSupabase = async ({
+  uuid,
+  startDate,
+  endDate,
+  period,
+  lotteryName,
+  ticketId,
+}) => {
+  try {
+    if (!uuid) {
+      return {
+        success: false,
+        error: "O parâmetro uuid é obrigatório.",
+      };
+    }
+
+    const { data, error } = await supabase.rpc("get_bets_report_pdf", {
+      p_uuid: uuid,
+      p_start_date: startDate || null,
+      p_end_date: endDate || null,
+      p_period: period || null,
+      p_lottery_name: lotteryName || null,
+      p_ticket_id: ticketId || null,
+    });
+
+    if (error) {
+      console.error("Erro RPC get_bets_report_pdf:", error);
+
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return {
+      success: true,
+      data: data?.data || [],
+      totals: data?.totals || {},
+    };
+  } catch (error) {
+    console.error("Erro getFullBetsReportFromSupabase:", error);
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
 export {
   createBetFromSupabase,
   getAllBetLotteriesFromSupabase,
@@ -190,4 +240,5 @@ export {
   cancelTicketFromSupabse,
   getLotteriesFromSupabase,
   getAllSortedFromSupabase,
+  getFullBetsReportFromSupabase,
 };
