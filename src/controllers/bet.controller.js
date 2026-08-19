@@ -109,10 +109,9 @@ const createBet = async (req, res) => {
   }
 };
 
-// All tickets
+//Get tickets
 const getTickets = async (req, res) => {
   try {
-    // 1. Extração dos filtros da URL
     const { start_date, end_date, lotteryName, ticketId, period, limit, page } =
       req.query;
 
@@ -122,7 +121,7 @@ const getTickets = async (req, res) => {
         error: "The lotteryName parameter is mandatory.",
       });
     }
-    // 2. Validação obrigatória apenas do start_date
+
     if (!start_date) {
       return res.status(400).json({
         success: false,
@@ -130,29 +129,28 @@ const getTickets = async (req, res) => {
       });
     }
 
-    // Chamada unificada do helper que limpa, formata e aplica o fuso horário do Haiti
-    const { startDate, endDate } = getHaitiDayBounds(
+    const { startDate, endDate: finalEndDate } = getHaitiDayBounds(
       formatDateToISOInput(start_date),
       formatDateToISOInput(end_date || start_date),
     );
 
-    console.log(startDate, endDate);
+    const pageLimit =
+      Number.isFinite(Number(limit)) && Number(limit) > 0
+        ? Math.min(Number(limit), 100)
+        : 20;
 
-    // 4. Tratamento matemático da Paginação (Page -> Offset)
-    const pageLimit = limit ? parseInt(limit, 10) : 10;
-    const currentPage = page ? parseInt(page, 10) : 1;
-    const pageOffset = (currentPage - 1) * pageLimit;
+    const currentPage =
+      Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1;
 
-    // 5. Chamada unificada passando os parâmetros mapeados por chaves {}
     const tickets = await getAllBetLotteriesFromSupabase({
       uuid: req.user.uuid,
-      startDate, // String no formato ISO travada no início do dia do Haiti
-      endDate, // String no formato ISO travada no fim do dia do Haiti
+      startDate,
+      endDate: finalEndDate,
       lotteryName,
-      limit: pageLimit,
-      offset: pageOffset,
-      period,
       ticketId,
+      period,
+      limit: pageLimit,
+      page: currentPage,
     });
 
     if (!tickets.success) {
@@ -164,13 +162,15 @@ const getTickets = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      count: tickets.data?.length || 0,
+      count: tickets.data.length,
       page: currentPage,
       meta: tickets.meta,
+      totals: tickets.totals,
       data: tickets.data,
     });
   } catch (error) {
     console.error("Error in the getTickets controller:", error);
+
     return res.status(500).json({
       success: false,
       message: "Internal server error.",

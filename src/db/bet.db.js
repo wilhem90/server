@@ -36,7 +36,7 @@ const getAllBetLotteriesFromSupabase = async ({
   endDate,
   lotteryName,
   limit = 20,
-  offset = 0,
+  page = 1,
   period,
   ticketId,
 }) => {
@@ -48,44 +48,27 @@ const getAllBetLotteriesFromSupabase = async ({
       };
     }
 
-    let query = supabase
-      .from("bets")
-      .select("*, statements!inner(wallet_id, wallets!inner(user_id))", {
-        count: "exact",
-      })
-      .eq("statements.wallets.user_id", uuid);
+    const safePage =
+      Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1;
 
-    // Filtro de período
-    if (startDate) {
-      query = query.gte("created_at", startDate);
-    }
+    const safeLimit =
+      Number.isFinite(Number(limit)) && Number(limit) > 0
+        ? Math.min(Number(limit), 100)
+        : 20;
 
-    if (endDate) {
-      query = query.lt("created_at", endDate);
-    }
-
-    // Filtros opcionais
-    if (lotteryName) {
-      query = query.eq("lottery_name", lotteryName);
-    }
-
-    if (period) {
-      query = query.eq("period", period);
-    }
-
-    if (ticketId) {
-      query = query.eq("ticket_number", ticketId);
-    }
-
-    // Paginação + ordenação
-    query = query
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
+    const { data, error } = await supabase.rpc("get_bets_report", {
+      p_uuid: uuid,
+      p_start_date: startDate || null,
+      p_end_date: endDate || null,
+      p_lottery_name: lotteryName || null,
+      p_ticket_id: ticketId || null,
+      p_period: period || null,
+      p_page: safePage,
+      p_limit: safeLimit,
+    });
 
     if (error) {
-      console.error("Erro Supabase:", error.message);
+      console.error("Erro RPC get_bets_report:", error);
 
       return {
         success: false,
@@ -93,31 +76,41 @@ const getAllBetLotteriesFromSupabase = async ({
       };
     }
 
-    // Remove dados internos do JOIN
-    const cleanData = data
-      ? data.map(({ statements, ...ticket }) => ticket)
-      : [];
+    const result = data || {};
 
     return {
       success: true,
-      data: cleanData,
+      data: Array.isArray(result.data) ? result.data : [],
       meta: {
-        totalRecords: count ?? 0,
-        limit,
-        offset,
-        hasMore: offset + cleanData.length < (count ?? 0),
+        page: Number(result.meta?.page || safePage),
+        limit: Number(result.meta?.limit || safeLimit),
+        offset: Number(result.meta?.offset || 0),
+        totalRecords: Number(result.meta?.totalRecords || 0),
+        totalPages: Number(result.meta?.totalPages || 0),
+        hasMore: Boolean(result.meta?.hasMore),
+      },
+
+      totals: {
+        totalBets: Number(result.totals?.totalBets || 0),
+        totalAmount: Number(result.totals?.totalAmount || 0),
+        totalPayout: Number(result.totals?.totalPayout || 0),
+        totalCancelled: Number(result.totals?.totalCancelled || 0),
+        approvedBets: Number(result.totals?.approvedBets || 0),
+        wonBets: Number(result.totals?.wonBets || 0),
+        pendingBets: Number(result.totals?.pendingBets || 0),
+        lostBets: Number(result.totals?.lostBets || 0),
+        cancelledBets: Number(result.totals?.cancelledBets || 0),
       },
     };
-  } catch (err) {
-    console.error("Erro inesperado:", err);
+  } catch (error) {
+    console.error("Erro inesperado em getAllBetLotteriesFromSupabase:", error);
 
     return {
       success: false,
-      error: err.message,
+      error: error.message,
     };
   }
 };
-
 // Cancel ticket - Mantido original (perfeito usando RPC)
 const cancelTicketFromSupabse = async (p_user_id, p_id_ticket, reason) => {
   const { data, error } = await supabase.rpc("cancel_bet_pending", {
