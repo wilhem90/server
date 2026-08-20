@@ -95,8 +95,24 @@ const updateUserFromSupabase = async (email, data) => {
   };
 };
 
+// Get my subuser
+async function getSubUsersFromSupabase(adminId) {
+  const { data, error } = await supabase.rpc("list_sub_users", {
+    p_admin_id: adminId,
+  });
+  if (error) {
+    return { success: false, error };
+  }
+
+  return {
+    success: true,
+    data,
+  };
+}
+
 export {
   getUserAndWalletByEmailUserNameDocumentIdFromSupabase,
   registerUserFromSupabase,
   updateUserFromSupabase,
+  getSubUsersFromSupabase,
 };

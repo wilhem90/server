@@ -18,5 +18,4 @@ betRoutes.get("/report", privateRoute, generateReportPDF);
 betRoutes.put("/cancel/:id", privateRoute, cancelTicket);
 betRoutes.post("/insert-sorted", privateRoute, winningFormat, runLotteryDraw);
 betRoutes.get("/lotteries", privateRoute, getLotteries);
-
 export default betRoutes;

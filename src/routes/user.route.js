@@ -1,6 +1,7 @@
 import express from "express";
 import {
   confirmEmailUser,
+  getMySubuser,
   getUserByEmailUserNameDocumentId,
   loginUser,
   registerUser,
@@ -46,11 +47,10 @@ userRoutes.get(
   confirmEmailUser,
 );
 
-userRoutes.post(
-  "/reset-password",
-  limiter(900_000, 5),
-  resetPasswordByEmail,
-);
+userRoutes.post("/reset-password", limiter(900_000, 5), resetPasswordByEmail);
 userRoutes.post("/update-password", verifyCodeOTP, updateUser);
+
+// Get my subuser
+userRoutes.get("/subuser", privateRoute, getMySubuser);
 
 export default userRoutes;

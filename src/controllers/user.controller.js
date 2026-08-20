@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import {
+  getSubUsersFromSupabase,
   getUserAndWalletByEmailUserNameDocumentIdFromSupabase,
   registerUserFromSupabase,
   updateUserFromSupabase,
@@ -169,9 +170,12 @@ const getUserByEmailUserNameDocumentId = async (req, res) => {
       throw new Error(refUser.error.message);
     }
 
+    const subuserResult = await getSubUsersFromSupabase(refUser.data.id);
+    refUser.data.subusers = subuserResult.success ? subuserResult.data : [];
     delete refUser.data.password_hash;
     delete refUser.data.pin_transaction;
     delete refUser.data.uuid;
+    delete refUser.data.code_otp;
 
     return res.status(200).json({
       success: true,
@@ -347,6 +351,33 @@ const resetPasswordByEmail = async (req, res, next) => {
     });
   }
 };
+
+// Get my subuser
+const getMySubuser = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const subusersResult = await getSubUsersFromSupabase(userId);
+
+    if (!subusersResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to retrieve subusers.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: subusersResult.data,
+    });
+  } catch (error) {
+    console.error("Error retrieving subusers:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An internal error occurred. Please try again later.",
+    });
+  }
+};
+
 export {
   getUserByEmailUserNameDocumentId,
   registerUser,
@@ -354,4 +385,5 @@ export {
   confirmEmailUser,
   updateUser,
   resetPasswordByEmail,
+  getMySubuser,
 };
