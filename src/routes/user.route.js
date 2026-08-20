@@ -20,7 +20,6 @@ import {
   privateRoute,
   verifyCodeOTP,
 } from "../middlewares/auth.middleware.js";
-import { validateEmail } from "../db/auth.db.js";
 import limiter from "../configs/limiter.js";
 
 const userRoutes = express.Router();

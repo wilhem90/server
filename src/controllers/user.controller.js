@@ -62,12 +62,12 @@ const registerUser = async (req, res, next) => {
 };
 
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const { identifier, password } = req.body;
 
-  if (!email || !password) {
+  if (!identifier || !password) {
     return res.status(400).json({
       success: false,
-      message: "Email and password are required for login!",
+      message: "Email or username or docId and password are required.",
     });
   }
 
@@ -75,19 +75,20 @@ const loginUser = async (req, res) => {
     // 1. Busca usuário e carteira juntos
     const userResult =
       await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(
-        String(email).toLowerCase(),
+        String(identifier).toLowerCase(),
       );
+
     if (!userResult.success) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: "Credentials invalid.",
+        message: "User not found.",
       });
     }
 
     const user = userResult.data;
 
     // 2. Valida se o e-mail foi confirmado
-    if (!user.email_confirmed) {
+    if (!user?.email_confirmed) {
       return res.status(401).json({
         success: false,
         message: "Account pending confirmation email.",
@@ -132,13 +133,13 @@ const loginUser = async (req, res) => {
     expirationDate.setMinutes(expirationDate.getMinutes() + 15);
 
     // 8. Atualiza o último login do usuário no Supabase
-    await updateUserFromSupabase(email, { last_login_at: new Date() });
+    await updateUserFromSupabase(user.email, { last_login_at: new Date() });
 
     // 9. Retorno de sucesso para o cliente
     return res.status(200).json({
       success: true,
       message: "Login successfully.",
-      email,
+      email: user.email,
       token,
       expiresIn: expirationDate.toISOString(),
       refreshToken,

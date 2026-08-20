@@ -38,6 +38,8 @@ const getUserAndWalletByEmailUserNameDocumentIdFromSupabase = async (
     return { success: false, error: new Error("Search parameter is required") };
   }
 
+  console.log(search);
+
   const { data, error } = await supabase
     .from("users")
     .select(
@@ -50,6 +52,7 @@ const getUserAndWalletByEmailUserNameDocumentIdFromSupabase = async (
         document_id,
         birthday,
         status,
+        role,
         password_hash,
         email_confirmed,
         code_otp,
@@ -61,6 +64,15 @@ const getUserAndWalletByEmailUserNameDocumentIdFromSupabase = async (
           currency,
           balance,
           number_account
+        ),
+        addresses (
+          id,
+          country,
+          state,
+          city,
+          neighborhood,
+          street,
+          number
         )
       `,
     )
@@ -69,7 +81,7 @@ const getUserAndWalletByEmailUserNameDocumentIdFromSupabase = async (
     )
     .maybeSingle();
 
-  if (error) {
+  if (error || !data) {
     return { success: false, error };
   }
 
@@ -100,7 +112,7 @@ async function getSubUsersFromSupabase(adminId) {
   const { data, error } = await supabase.rpc("list_sub_users", {
     p_admin_id: adminId,
   });
-  if (error) {
+  if (error || !data) {
     return { success: false, error };
   }
 

@@ -6,7 +6,10 @@ import { linkValidateEmail } from "../mails/linkValidateEmail.js";
 import { checkTokenListFromSupaBase } from "../db/auth.db.js";
 import sendEmail from "../configs/nodemailer.js";
 import tokenExpiredEmail from "../mails/templateTokenExpired.js";
-import { getUserAndWalletByEmailUserNameDocumentIdFromSupabase } from "../db/user.db.js";
+import {
+  getSubUsersFromSupabase,
+  getUserAndWalletByEmailUserNameDocumentIdFromSupabase,
+} from "../db/user.db.js";
 import bcrypt from "bcrypt";
 
 const refreshToken = async (data) => {
@@ -18,18 +21,17 @@ const refreshToken = async (data) => {
 const privateRoute = async (req, res, next) => {
   const token = String(req.headers.authorization).split(" ")[1];
 
-  
   if (!token) {
     return res.status(401).json({
       success: false,
       message: "Not authorized.",
     });
   }
-  
-  
+
   try {
     const checkToken = jwt.verify(token, process.env.JWT_SECRET);
-    
+    console.log(checkToken);
+
     req.user = checkToken;
     next();
   } catch (error) {
@@ -244,9 +246,9 @@ const critiqueRoute = async (req, res, next) => {
   }
 };
 
+// Middleware to check if the user is an admin or super admin
 const isAdminUser = async (req, res, next) => {
   try {
-    // 1. Garante que o middleware de autenticação (JWT) rodou antes deste
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -254,19 +256,72 @@ const isAdminUser = async (req, res, next) => {
       });
     }
 
-    // Ajuste 'user.data.role' para o nome exato da coluna na sua tabela do Supabase
-    if (req.user.data.role !== "admin") {
+    const { uuid } = req.query;
+    const { role, uuid: loggedUserUUID } = req.user;
+
+    // ==========================================
+    // 1. SUPER ADMIN
+    // ==========================================
+    // Super admin pode acessar qualquer UUID
+    if (role === "super_admin") {
+      return next();
+    }
+
+    // ==========================================
+    // 2. Client
+    // ==========================================
+    if (loggedUserUUID === uuid || !uuid) {
+      return next();
+    }
+    
+    // ==========================================
+    // 3. ADMIN
+    // ==========================================
+    if (role === "admin") {
+      // Admin pode acessar o próprio UUID
+      if (loggedUserUUID === uuid || !uuid) {
+        return next();
+      }
+
+      // Busca os sub usuários do admin
+      const getSubUsers = await getSubUsersFromSupabase(loggedUserUUID);
+
+      if (!getSubUsers.success) {
+        return res.status(500).json({
+          success: false,
+          message: "Could not retrieve sub users.",
+        });
+      }
+
+      const subUserUUIDs = (getSubUsers.data || []).map(
+        (subUser) => subUser.uuid,
+      );
+
+      // Admin pode acessar somente seus sub usuários
+      if (subUserUUIDs.includes(uuid)) {
+        return next();
+      }
+
       return res.status(403).json({
-        // 403 Forbidden = Entendido, mas sem permissão
         success: false,
-        message: "Access denied. Admins only.",
+        error: "You are not authorized to access tickets for this user.",
       });
     }
 
-    // 4. Se passou em tudo, permite o acesso à rota prosseguindo para a próxima função
-    next();
+    // ==========================================
+    // 3. USUÁRIO NORMAL
+    // ==========================================
+    if (loggedUserUUID === uuid) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      error: "You are not authorized to access tickets for this user.",
+    });
   } catch (error) {
     console.error("Error in isAdminUser middleware:", error);
+
     return res.status(500).json({
       success: false,
       message: "Internal server error",

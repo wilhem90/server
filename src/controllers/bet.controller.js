@@ -116,8 +116,16 @@ const createBet = async (req, res) => {
 //Get tickets
 const getTickets = async (req, res) => {
   try {
-    const { start_date, end_date, lotteryName, ticketId, period, limit, page } =
-      req.query;
+    const {
+      start_date,
+      end_date,
+      lotteryName,
+      uuid,
+      ticketId,
+      period,
+      limit,
+      page,
+    } = req.query;
 
     if (ticketId && !lotteryName) {
       return res.status(400).json({
@@ -147,7 +155,7 @@ const getTickets = async (req, res) => {
       Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1;
 
     const tickets = await getAllBetLotteriesFromSupabase({
-      uuid: req.user.uuid,
+      uuid: uuid || req.user.uuid,
       startDate,
       endDate: finalEndDate,
       lotteryName,
