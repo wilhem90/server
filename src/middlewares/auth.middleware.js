@@ -73,7 +73,7 @@ const refreshToken = async (data) => {
   return generateTokens(
     { uuid: data.uuid },
     data.REFRESH_SECRET,
-    TOKEN_EXPIRY.REFRESH
+    TOKEN_EXPIRY.REFRESH,
   );
 };
 
@@ -165,9 +165,8 @@ const linkConfirmEmail = async (req, res) => {
   }
 
   try {
-    const existingUser = await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(
-      email
-    );
+    const existingUser =
+      await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
 
     if (!existingUser?.data?.email) {
       return res.status(400).json({
@@ -186,14 +185,18 @@ const linkConfirmEmail = async (req, res) => {
     const token = generateTokens(
       { email },
       process.env.JWT_SECRET,
-      TOKEN_EXPIRY.EMAIL_VALIDATE
+      TOKEN_EXPIRY.EMAIL_VALIDATE,
     );
 
     const user = existingUser.data;
     const url = `${process.env.FRONTEND_URL_PRO}/users/confirm-email/${token}`;
     const emailHtml = linkValidateEmail(user.first_name, "Pasyans", url);
 
-    const result = await sendEmailWithRetry(email, "Validate your account!", emailHtml);
+    const result = await sendEmailWithRetry(
+      email,
+      "Validate your account!",
+      emailHtml,
+    );
 
     if (!result.success) {
       throw new Error(result.error || "Failed to send email");
@@ -228,7 +231,8 @@ const verifyCodeOTP = async (req, res, next) => {
   }
 
   try {
-    const user = await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
+    const user =
+      await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
 
     if (!user.data?.code_otp?.hash_code) {
       return res.status(401).json({
@@ -288,7 +292,8 @@ const critiqueRoute = async (req, res, next) => {
       });
     }
 
-    const user = await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
+    const user =
+      await getUserAndWalletByEmailUserNameDocumentIdFromSupabase(email);
 
     if (!user?.data) {
       return res.status(404).json({
@@ -315,7 +320,10 @@ const critiqueRoute = async (req, res, next) => {
       });
     }
 
-    const pinMatch = bcrypt.compareSync(req.body.pinTransaction, pin_transaction);
+    const pinMatch = bcrypt.compareSync(
+      req.body.pinTransaction,
+      pin_transaction,
+    );
 
     if (!pinMatch) {
       return res.status(401).json({
@@ -352,29 +360,45 @@ const isAdminUser = async (req, res, next) => {
       });
     }
 
-    const { uuid } = req.query;
+    const { uuids } = req.query;
     const { role, uuid: loggedUserUUID } = req.user;
 
-    if (!uuid) {
+    if (!uuids) {
       return res.status(400).json({
         success: false,
-        message: "User UUID is required in query parameters.",
+        message: "Users UUIDS are required.",
       });
     }
 
-    // 1. SUPER ADMIN - Acesso total
+    // 1. Convertir la cadena "{uuid1,uuid2}" de Postgres en un array de JavaScript limpio
+    const parsedUUIDs = String(uuids)
+      .replace(/[{}]/g, "") // Elimina llaves
+      .split(",") // Divide por comas
+      .map((id) => id.trim()) // Limpia espacios
+      .filter(Boolean); // Elimina elementos vacíos
+
+    if (parsedUUIDs.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid UUIDs format.",
+      });
+    }
+
+    // 2. SUPER ADMIN - Acesso total
     if (role === ROLES.SUPER_ADMIN) {
       return next();
     }
 
-    // 2. ADMIN - Acesso próprio e sub usuários
+    // 3. ADMIN - Acesso próprio e de seus sub-usuários
     if (role === ROLES.ADMIN) {
-      // Acesso ao próprio UUID
-      if (loggedUserUUID === uuid) {
+      // Caso 1: El admin sólo se está consultando a sí mismo en el array
+      const isOnlySelf =
+        parsedUUIDs.length === 1 && parsedUUIDs[0] === loggedUserUUID;
+      if (isOnlySelf) {
         return next();
       }
 
-      // Busca sub usuários do admin
+      // Caso 2: El admin consulta sub-usuarios (o a sí mismo + sub-usuarios)
       const subUsers = await getSubUsersFromSupabase(loggedUserUUID);
 
       if (!subUsers.success) {
@@ -386,19 +410,31 @@ const isAdminUser = async (req, res, next) => {
 
       const subUserUUIDs = (subUsers.data || []).map((sub) => sub.uuid);
 
-      // Admin pode acessar somente seus sub usuários
-      if (subUserUUIDs.includes(uuid)) {
-        return next();
+      // El admin tiene permitido ver sus propios datos y los de sus sub-usuarios
+      const allowedUUIDs = [loggedUserUUID, ...subUserUUIDs];
+
+      // Verificamos si TODOS los UUIDs solicitados están permitidos para este Admin
+      const hasUnauthorizedUUID = parsedUUIDs.some(
+        (id) => !allowedUUIDs.includes(id),
+      );
+
+      if (hasUnauthorizedUUID) {
+        return res.status(403).json({
+          success: false,
+          error:
+            "You are not authorized to access one or more of these users' tickets.",
+        });
       }
 
-      return res.status(403).json({
-        success: false,
-        error: "You are not authorized to access this user's tickets.",
-      });
+      return next();
     }
 
-    // 3. USUÁRIO NORMAL - Acesso apenas a si mesmo
-    if (loggedUserUUID === uuid) {
+    // 4. USUÁRIO NORMAL - Acesso apenas a si mesmo
+    // Un usuario normal sólo puede consultar un array que contenga única y exclusivamente su propio ID
+    const isOnlySelfNormal =
+      parsedUUIDs.length === 1 && parsedUUIDs[0] === loggedUserUUID;
+
+    if (isOnlySelfNormal) {
       return next();
     }
 

@@ -146,7 +146,7 @@ const getTickets = async (req, res) => {
       start_date,
       end_date,
       lotteryName,
-      uuid,
+      uuids, // Cambiado de 'uuid' a 'uuids' para recibir el formato array de Postgres
       ticketId,
       period,
       limit,
@@ -180,8 +180,15 @@ const getTickets = async (req, res) => {
     const currentPage =
       Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1;
 
+    // DETERMINAR QUÉ UUIDS ENVIAR A SUPABASE:
+    // Si el cliente no envió la lista 'uuids' en el query, usamos por defecto el ID del usuario logueado en formato Postgres array "{ID}"
+    let finalUUIDs =
+      uuids && uuids.trim() !== "" ? uuids : `{${req.user.uuid}}`;
+
+    console.log(typeof finalUUIDs);
+
     const tickets = await getAllBetLotteriesFromSupabase({
-      uuid: uuid || req.user.uuid,
+      uuids: typeof finalUUIDs === "string" ? [finalUUIDs] : finalUUIDs, // Cambiado el parámetro para enviar la lista estructurada
       startDate,
       endDate: finalEndDate,
       lotteryName,

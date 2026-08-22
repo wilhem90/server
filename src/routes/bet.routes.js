@@ -23,4 +23,5 @@ betRoutes.put("/cancel/:id", privateRoute, cancelTicket);
 betRoutes.post("/insert-sorted", privateRoute, winningFormat, runLotteryDraw);
 betRoutes.get("/lotteries", privateRoute, getLotteries);
 betRoutes.get("/sorted", privateRoute, getAllSorted);
+
 export default betRoutes;

@@ -31,7 +31,7 @@ const createBetFromSupabase = async (
 
 //Buscando tickets
 const getAllBetLotteriesFromSupabase = async ({
-  uuid,
+  uuids, // Recibe el formato de array de Postgres "{id1,id2}"
   startDate,
   endDate,
   lotteryName,
@@ -41,10 +41,10 @@ const getAllBetLotteriesFromSupabase = async ({
   ticketId,
 }) => {
   try {
-    if (!uuid) {
+    if (!uuids) {
       return {
         success: false,
-        error: "O parâmetro uuid é obrigatório.",
+        error: "O parâmetro uuids é obrigatório.", // Mensaje de error actualizado en plural
       };
     }
 
@@ -56,8 +56,9 @@ const getAllBetLotteriesFromSupabase = async ({
         ? Math.min(Number(limit), 100)
         : 20;
 
+    // Llamada RPC actualizada con el nuevo nombre del parámetro de Postgres
     const { data, error } = await supabase.rpc("get_bets_report", {
-      p_uuid: uuid,
+      p_uuids: uuids, // CAMBIADO: 'p_uuid' ahora es 'p_uuids' para mapear al array de Postgres
       p_start_date: startDate || null,
       p_end_date: endDate || null,
       p_lottery_name: lotteryName || null,
@@ -111,6 +112,7 @@ const getAllBetLotteriesFromSupabase = async ({
     };
   }
 };
+
 // Cancel ticket - Mantido original (perfeito usando RPC)
 const cancelTicketFromSupabse = async (p_user_id, p_id_ticket, reason) => {
   const { data, error } = await supabase.rpc("cancel_bet_pending", {
