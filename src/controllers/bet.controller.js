@@ -27,8 +27,6 @@ const createBet = async (req, res) => {
       pinTransaction,
     } = req.body;
 
-    console.log(req.body);
-
     if (
       !lotteryName ||
       !amount ||
@@ -48,6 +46,34 @@ const createBet = async (req, res) => {
       (lt) => lotteryName.includes(lt.id) && lt.is_active,
     );
 
+    if (amount >= 100) {
+      // Addicionar married gratis no choosen_values format 1520 com valor 0.00 3 no maximo
+      const gratis = {};
+
+      const mg1 = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      const mg2 = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      const mg3 = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      const mg4 = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      const mg5 = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+
+      gratis[mg1] = 0;
+      gratis[mg2] = 0;
+      gratis[mg3] = 0;
+      gratis[mg4] = 0;
+      gratis[mg5] = 0;
+
+      chosen_values.gratis = gratis;
+    }
     // Cria uma cópia para o mapeamento seguro dos índices em paralelo
 
     // Cria múltiplos tickets em paralelo

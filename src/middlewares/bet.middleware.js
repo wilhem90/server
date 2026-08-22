@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 const winning = (data) => {
   if (!["morning", "evening", "night"].includes(data.period)) {
     return "Period lottery invalid.";
@@ -22,9 +20,7 @@ const winning = (data) => {
 
 const winningFormat = async (req, res, next) => {
   // 1. Valida e tipa toda a requisição usando o Zod de uma vez só
-  const { lo1, lo2, lo3 } = req.body.winningValues
-  ;
-  
+  const { lo1, lo2, lo3 } = req.body.winningValues;
   // 2. Executa a sua inteligência matemática de combinações (Imutável e segura)
   const sortedNumbers = {
     sorted1: lo1.substring(1, 3),
@@ -44,7 +40,7 @@ const winningFormat = async (req, res, next) => {
     lotto52: `${lo1}${lo3}`,
     lotto53: `${lo1.substring(2, 3)}${lo2}${lo3}`,
   };
-  
+
   if (winning(req.body)) {
     return res.status(400).json({
       success: false,
@@ -57,7 +53,7 @@ const winningFormat = async (req, res, next) => {
 
 //Validate chosen_values and amount
 const checkMetadata = async (req, res, next) => {
-  const { chosen_values, amount, } = req.body;
+  const { chosen_values } = req.body;
 
   if (!chosen_values) {
     return res.status(400).json({
@@ -68,19 +64,72 @@ const checkMetadata = async (req, res, next) => {
 
   let soma = 0;
 
-  for (const category of Object.values(chosen_values)) {
-    for (const value of Object.values(category)) {
-      soma += Number(value);
+  for (const key in chosen_values) {
+    // console.log(key);
+
+    if (Object.hasOwnProperty.call(chosen_values, key)) {
+      const element = chosen_values[key];
+
+      if (key === "bor") {
+        Object.keys(element).forEach((key) => {
+          if (key.length !== 2) {
+            return res.status(400).json({
+              success: false,
+              message: "Bor values must be 2 digits.",
+            });
+          }
+        });
+      }
+
+      if (key === "lotto3") {
+        Object.keys(element).forEach((key) => {
+          if (key.length !== 3) {
+            return res.status(400).json({
+              success: false,
+              message: "Lotto values must be 3 digits.",
+            });
+          }
+        });
+      }
+
+      if (key === "lotto4") {
+        Object.keys(element).forEach((key) => {
+          if (key.length !== 4) {
+            return res.status(400).json({
+              success: false,
+              message: "Lotto values must be 4 digits.",
+            });
+          }
+        });
+      }
+
+      if (["lotto51", "lotto52", "lotto53"].includes(key)) {
+        Object.keys(element).forEach((key) => {
+          if (key.length !== 5) {
+            return res.status(400).json({
+              success: false,
+              message: `${key} values must be 5 digits.`,
+            });
+          }
+        });
+      }
+
+      if (key === "married") {
+        Object.keys(element).forEach((key) => {
+          if (key.length !== 4) {
+            return res.status(400).json({
+              success: false,
+              message: "Married values must be 4 digits.",
+            });
+          }
+        });
+      }
+
+      soma += Object.values(element).reduce((acc, curr) => acc + curr, 0);
     }
   }
 
-  if (Number(amount) !== soma) {
-    return res.status(400).json({
-      success: false,
-      message: "Amount not valid",
-    });
-  }
-
+  req.body.amount = soma;
   next();
 };
 

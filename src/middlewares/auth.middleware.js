@@ -30,8 +30,6 @@ const privateRoute = async (req, res, next) => {
 
   try {
     const checkToken = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(checkToken);
-
     req.user = checkToken;
     next();
   } catch (error) {
@@ -273,7 +271,7 @@ const isAdminUser = async (req, res, next) => {
     if (loggedUserUUID === uuid || !uuid) {
       return next();
     }
-    
+
     // ==========================================
     // 3. ADMIN
     // ==========================================

@@ -38,8 +38,6 @@ const getUserAndWalletByEmailUserNameDocumentIdFromSupabase = async (
     return { success: false, error: new Error("Search parameter is required") };
   }
 
-  console.log(search);
-
   const { data, error } = await supabase
     .from("users")
     .select(
