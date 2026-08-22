@@ -172,16 +172,22 @@ const getAllSortedFromSupabase = async ({
     .gte("date_lottery", startDate)
     .lte("date_lottery", endDate);
 
+  if (lotteryName) {
+    query.eq("lottery_name", lotteryName);
+  }
+
+  if (limit) {
+    query.limit(limit);
+  }
+  if (offset) {
+    query.offset(offset);
+  }
   const { data, error } = await query;
+
   if (error) {
     return { success: false, error };
   }
-
-  // Retorna a lista
-  return {
-    success: true,
-    data,
-  };
+  return { success: true, data };
 };
 
 //Get full bets report - Mantido original (perfeito usando RPC)

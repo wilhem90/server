@@ -16,6 +16,8 @@ import {
 } from "../schemas/user.schema.js";
 import {
   checkTokenIfTokenNotBlocked,
+  isAdminOrSubUser,
+  isAdminUser,
   linkConfirmEmail,
   privateRoute,
   verifyCodeOTP,
@@ -31,7 +33,12 @@ userRoutes.post(
   linkConfirmEmail,
 );
 userRoutes.post("/signin", validateBody(loginUserSchema), loginUser);
-userRoutes.get("/:identifier", privateRoute, getUserByEmailUserNameDocumentId);
+userRoutes.get(
+  "/:identifier",
+  privateRoute,
+  isAdminOrSubUser,
+  getUserByEmailUserNameDocumentId,
+);
 userRoutes.post(
   "/link-validate-email",
   limiter(24 * 60 * 60 * 1000, 2),

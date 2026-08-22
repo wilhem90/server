@@ -50,19 +50,19 @@ const createBet = async (req, res) => {
       // Addicionar married gratis no choosen_values format 1520 com valor 0.00 3 no maximo
       const gratis = {};
 
-      const mg1 = Math.floor(Math.random() * 10000)
+      const mg1 = Math.floor(Math.random() * 10_000)
         .toString()
         .padStart(4, "0");
-      const mg2 = Math.floor(Math.random() * 10000)
+      const mg2 = Math.floor(Math.random() * 10_000)
         .toString()
         .padStart(4, "0");
-      const mg3 = Math.floor(Math.random() * 10000)
+      const mg3 = Math.floor(Math.random() * 10_000)
         .toString()
         .padStart(4, "0");
-      const mg4 = Math.floor(Math.random() * 10000)
+      const mg4 = Math.floor(Math.random() * 10_000)
         .toString()
         .padStart(4, "0");
-      const mg5 = Math.floor(Math.random() * 10000)
+      const mg5 = Math.floor(Math.random() * 10_000)
         .toString()
         .padStart(4, "0");
 
@@ -328,35 +328,32 @@ const getLotteries = async (req, res) => {
 const getAllSorted = async (req, res) => {
   try {
     // 1. Extração dos filtros da URL
-    const {
-      start_date: startDate,
-      end_date,
-      lotteryName,
-      limit,
-      page,
-    } = req.query;
+    let { start_date, end_date, lotteryName, limit, page } = req.query;
 
     // 2. Validação obrigatória apenas do start_date
-    if (!startDate) {
+    if (!start_date) {
       return res.status(400).json({
         success: false,
         error: "The start_date parameter is mandatory.",
       });
     }
 
-    let endDate;
-
-    if (end_date) {
-      endDate = startDate;
+    if (!end_date) {
+      end_date = start_date;
     }
 
-    if (endDate < startDate) {
+    if (end_date < start_date) {
       return res.status(400).json({
         success: false,
         message: "Invalid date.",
       });
     }
 
+    const arrayStartDate = start_date.split("-");
+    const arrayEndDate = end_date.split("-");
+
+    const start = `${arrayStartDate[2]}-${arrayStartDate[1]}-${arrayStartDate[0]}`;
+    const end = `${arrayEndDate[2]}-${arrayEndDate[1]}-${arrayEndDate[0]}`;
     // 4. Tratamento matemático da Paginação (Page -> Offset)
     const pageLimit = limit ? parseInt(limit, 10) : 10;
     const currentPage = page ? parseInt(page, 10) : 1;
@@ -364,8 +361,8 @@ const getAllSorted = async (req, res) => {
 
     // 5. Chamada unificada passando os parâmetros mapeados por chaves {}
     const tickets = await getAllSortedFromSupabase({
-      startDate,
-      endDate,
+      startDate: start,
+      endDate: end,
       lotteryName,
       limit: pageLimit,
       offset: pageOffset,
