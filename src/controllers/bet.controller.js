@@ -15,6 +15,7 @@ import {
   getHaitiDayBounds,
 } from "../helpers/dateHelpers.js";
 import { formatCurrency } from "../helpers/helper.js";
+import { showBalanceFromSupabase } from "../db/wallet.db.js";
 
 // Create ticket
 const createBet = async (req, res) => {
@@ -74,7 +75,34 @@ const createBet = async (req, res) => {
 
       chosen_values.gratis = gratis;
     }
-    // Cria uma cópia para o mapeamento seguro dos índices em paralelo
+    // Verificamos se o saldo permitido de finalizar essa transação
+
+    const saldo = await showBalanceFromSupabase(req.user.uuid);
+
+    if (!saldo.success) {
+      return res.status(400).json({
+        success: false,
+        message: saldo.error || "Failed to retrieve balance.",
+      });
+    }
+
+    if (saldo.data.balance <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance to perform this operation.",
+      });
+    }
+
+    const totalAmount = Number(lotteryName.length) * amount; // Exemplo de cálculo do valor total da aposta
+
+    if (saldo.data.balance < totalAmount) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient balance to perform this operation.",
+        balance: saldo.data.balance,
+        required: totalAmount,
+      });
+    }
 
     // Cria múltiplos tickets em paralelo
     const results = await Promise.all(
@@ -182,10 +210,8 @@ const getTickets = async (req, res) => {
 
     // DETERMINAR QUÉ UUIDS ENVIAR A SUPABASE:
     // Si el cliente no envió la lista 'uuids' en el query, usamos por defecto el ID del usuario logueado en formato Postgres array "{ID}"
-    let finalUUIDs =
+    const finalUUIDs =
       uuids && uuids.trim() !== "" ? uuids : `{${req.user.uuid}}`;
-
-    console.log(typeof finalUUIDs);
 
     const tickets = await getAllBetLotteriesFromSupabase({
       uuids: typeof finalUUIDs === "string" ? [finalUUIDs] : finalUUIDs, // Cambiado el parámetro para enviar la lista estructurada
