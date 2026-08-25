@@ -734,7 +734,7 @@ const generateReportPDF = async (req, res) => {
         },
 
         {
-          text: formatDateToISOInput(bet.created_at),
+          text: bet.created_at,
 
           style: "tableCell",
         },

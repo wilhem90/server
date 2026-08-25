@@ -79,6 +79,4 @@ const getHaitiDayBounds = (startStr, endStr = startStr) => {
 };
 
 
-
-
-export { formatDateToISOInput, getHaitiDayBounds };
+export { formatDateToISOInput, getHaitiDayBounds, };
