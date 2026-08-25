@@ -1,19 +1,14 @@
-import { json, success } from "zod";
 //pdfkit
-import PDFDocument from "pdfkit";
+import pdfmake from "pdfmake";
 import {
   cancelTicketFromSupabse,
   createBetFromSupabase,
   getAllBetLotteriesFromSupabase,
   getAllSortedFromSupabase,
-  getFullBetsReportFromSupabase,
   getLotteriesFromSupabase,
   runLotteryDrawFromSupabase,
 } from "../db/bet.db.js";
-import {
-  formatDateToISOInput,
-  getHaitiDayBounds,
-} from "../helpers/dateHelpers.js";
+import { formatDateToISOInput } from "../helpers/dateHelpers.js";
 import { formatCurrency } from "../helpers/helper.js";
 import { showBalanceFromSupabase } from "../db/wallet.db.js";
 
@@ -195,11 +190,6 @@ const getTickets = async (req, res) => {
       });
     }
 
-    const { startDate, endDate: finalEndDate } = getHaitiDayBounds(
-      formatDateToISOInput(start_date),
-      formatDateToISOInput(end_date || start_date),
-    );
-
     const pageLimit =
       Number.isFinite(Number(limit)) && Number(limit) > 0
         ? Math.min(Number(limit), 100)
@@ -215,8 +205,8 @@ const getTickets = async (req, res) => {
 
     const tickets = await getAllBetLotteriesFromSupabase({
       uuids: typeof finalUUIDs === "string" ? [finalUUIDs] : finalUUIDs, // Cambiado el parámetro para enviar la lista estructurada
-      startDate,
-      endDate: finalEndDate,
+      startDate: formatDateToISOInput(start_date),
+      endDate: formatDateToISOInput(end_date || start_date),
       lotteryName,
       ticketId,
       period,
@@ -423,10 +413,32 @@ const getAllSorted = async (req, res) => {
   }
 };
 
-// Generate PDF report
+// =========================================================
+// GERAR RELATÓRIO PDF
+// =========================================================
+
 const generateReportPDF = async (req, res) => {
+  const fonts = {
+    Helvetica: {
+      normal: "Helvetica",
+      bold: "Helvetica-Bold",
+      italics: "Helvetica-Oblique",
+      bolditalics: "Helvetica-BoldOblique",
+    },
+  };
+
+  const printer = new pdfmake(fonts);
   try {
-    const { start_date, end_date, lotteryName, ticketId, period } = req.query;
+    // =====================================================
+    // PARÂMETROS
+    // =====================================================
+
+    const { start_date, end_date, uuids, period, lottery_name, ticket_id } =
+      req.query;
+
+    // =====================================================
+    // VALIDAR DATA INICIAL
+    // =====================================================
 
     if (!start_date) {
       return res.status(400).json({
@@ -435,27 +447,86 @@ const generateReportPDF = async (req, res) => {
       });
     }
 
-    if (ticketId && !lotteryName) {
+    // =====================================================
+    // UUIDS
+    // =====================================================
+
+    let finalUUIDs;
+
+    if (!uuids || uuids.trim() === "") {
+      // Usuário logado
+      finalUUIDs = [req.user.uuid];
+    } else {
+      try {
+        // -----------------------------------------------
+        // Tenta interpretar como JSON
+        // -----------------------------------------------
+
+        const parsed = JSON.parse(uuids);
+
+        finalUUIDs = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        // -----------------------------------------------
+
+        finalUUIDs = uuids
+          .split(",")
+          .map((uuid) => uuid.trim())
+          .filter(Boolean);
+      }
+    }
+
+    // =====================================================
+    // GARANTIR ARRAY
+    // =====================================================
+
+    if (!Array.isArray(finalUUIDs)) {
+      finalUUIDs = [finalUUIDs];
+    }
+
+    // =====================================================
+    // REMOVER UUIDS VAZIOS
+    // =====================================================
+
+    finalUUIDs = finalUUIDs.map((uuid) => String(uuid).trim()).filter(Boolean);
+
+    // =====================================================
+    // VALIDAR UUIDS
+    // =====================================================
+
+    if (finalUUIDs.length === 0) {
       return res.status(400).json({
         success: false,
-        message:
-          "O parâmetro lotteryName é obrigatório quando ticketId for informado.",
+        message: "Nenhum UUID válido foi informado.",
       });
     }
 
-    const { startDate, endDate } = getHaitiDayBounds(
-      formatDateToISOInput(start_date),
-      formatDateToISOInput(end_date || start_date),
-    );
+    // =====================================================
+    // DATA FINAL
+    // =====================================================
 
-    const report = await getFullBetsReportFromSupabase({
-      uuid: req.user.uuid,
-      startDate,
-      endDate,
-      period,
-      lotteryName,
-      ticketId,
+    const finalEndDate = end_date || start_date;
+
+    // =====================================================
+    // BUSCAR DADOS
+    // =====================================================
+
+    const report = await getAllBetLotteriesFromSupabase({
+      uuids: finalUUIDs,
+
+      startDate: formatDateToISOInput(start_date),
+
+      endDate: formatDateToISOInput(finalEndDate),
+
+      period: period || null,
+
+      lotteryName: lottery_name || null,
+
+      ticketId: ticket_id || null,
     });
+
+    // =====================================================
+    // ERRO DO SERVICE
+    // =====================================================
 
     if (!report.success) {
       return res.status(400).json({
@@ -464,337 +535,785 @@ const generateReportPDF = async (req, res) => {
       });
     }
 
+    // =====================================================
+    // DADOS
+    // =====================================================
+
     const bets = Array.isArray(report.data) ? report.data : [];
+
     const totals = report.totals || {};
 
-    const doc = new PDFDocument({
-      size: "A4",
-      margin: 30,
-      bufferPages: true,
-    });
+    // =====================================================
+    // MÉTRICAS
+    // =====================================================
 
-    const fileName = `relatorio-apostas-${start_date}-${end_date || start_date}.pdf`;
+    const totalBets = Number(totals.totalBets || 0);
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    const totalAmount = Number(totals.totalAmount || 0);
 
-    doc.pipe(res);
+    const totalPayout = Number(totals.totalPayout || 0);
 
-    // Paleta de cores refinada
+    const totalCancelled = Number(totals.totalCancelled || 0);
+
+    // =====================================================
+    // COMISSÃO
+    // =====================================================
+
+    const percent = Number(req.user.percent ?? 10);
+
+    const commission = totalAmount * (percent / 100);
+
+    // =====================================================
+    // RESULTADO
+    // =====================================================
+
+    const difference = totalAmount - totalPayout - commission;
+
+    // =====================================================
+    // MARGEM
+    // =====================================================
+
+    const margin =
+      totalAmount > 0 ? ((difference / totalAmount) * 100).toFixed(1) : "0.0";
+
+    // =====================================================
+    // CORES
+    // =====================================================
+
     const COLORS = {
       primary: "#0d6efd",
       secondary: "#6c757d",
       success: "#198754",
       danger: "#dc3545",
       warning: "#ffc107",
-      info: "#0dcaf0",
       dark: "#212529",
       light: "#f8f9fa",
       white: "#ffffff",
       border: "#dee2e6",
       text: "#495057",
       muted: "#6c757d",
-      gradientStart: "#0d6efd",
-      gradientEnd: "#0a58ca",
     };
 
-    // ---------- HEADER ----------
-    doc
-      .fillColor(COLORS.primary)
-      .fontSize(24)
-      .font("Helvetica-Bold")
-      .text(" Relatório Pós-Venda", { align: "left" });
+    // =====================================================
+    // FUNÇÃO PARA STATUS
+    // =====================================================
 
-    doc
-      .fillColor(COLORS.muted)
-      .fontSize(11)
-      .font("Helvetica")
-      .text("Relatório completo de apostas", { align: "left" });
+    const getStatus = (status) => {
+      const normalized = String(status || "").toLowerCase();
 
-    doc.moveDown(0.3);
+      switch (normalized) {
+        case "won":
+          return {
+            label: "GANHOU",
+            color: COLORS.success,
+          };
 
-    // Linha decorativa
-    doc
-      .strokeColor(COLORS.primary)
-      .lineWidth(1)
-      .moveTo(20, doc.y)
-      .lineTo(555, doc.y)
-      .stroke();
+        case "approved":
+          return {
+            label: "APROVADA",
+            color: COLORS.primary,
+          };
 
-    doc.moveDown(0.8);
+        case "pending":
+          return {
+            label: "PENDENTE",
+            color: COLORS.warning,
+          };
 
-    // Período destacado
-    doc
-      .fillColor(COLORS.dark)
-      .fontSize(11)
-      .font("Helvetica-Bold")
-      .text(`Período: ${start_date} — ${end_date || start_date}`, {
-        align: "left",
-      });
+        case "lost":
+          return {
+            label: "PERDEU",
+            color: COLORS.danger,
+          };
 
-    doc.moveDown(1.2);
+        case "cancelled":
+          return {
+            label: "CANCELADA",
+            color: COLORS.muted,
+          };
 
-    // ---------- CARDS DE MÉTRICAS ----------
-    const totalBets = Number(totals.totalBets || 0);
-    const totalAmount = Number(totals.totalAmount || 0);
-    const totalPayout = Number(totals.totalPayout || 0);
-    const totalCancelled = Number(totals.totalCancelled || 0);
-    const commission = totalAmount * (Number(req.user.percent || 10) / 100);
-    const difference = totalAmount - totalPayout - commission;
-
-    const drawCard = (
-      x,
-      y,
-      width,
-      icon,
-      label,
-      value,
-      color = COLORS.primary,
-    ) => {
-      // Sombra (efeito sutil)
-      doc.roundedRect(x + 2, y + 2, width, 70, 8).fill("#e9ecef");
-
-      // Card principal
-      doc.roundedRect(x, y, width, 70, 8).fill(COLORS.white);
-      doc.roundedRect(x, y, width, 70, 8).stroke(COLORS.border, 1);
-
-      // Ícone
-      doc
-        .fillColor(color)
-        .fontSize(16)
-        .text(icon, x + 14, y + 8);
-
-      // Label
-      doc
-        .fillColor(COLORS.muted)
-        .fontSize(7.5)
-        .font("Helvetica-Bold")
-        .text(label.toUpperCase(), x + 40, y + 10, {
-          width: width - 20,
-        });
-
-      // Valor
-      doc
-        .fillColor(COLORS.dark)
-        .fontSize(16)
-        .font("Helvetica-Bold")
-        .text(value, x + 14, y + 30, {
-          width: width - 28,
-        });
+        default:
+          return {
+            label: "N/A",
+            color: COLORS.muted,
+          };
+      }
     };
 
-    const cardY = doc.y;
-    const cardWidth = 128;
+    // =====================================================
+    // TABELA
+    // =====================================================
 
-    drawCard(
-      10,
-      cardY,
-      cardWidth,
-      "",
-      "Total de apostas",
-      String(totalBets),
-      COLORS.primary,
-    );
-    drawCard(
-      168,
-      cardY,
-      cardWidth,
-      "",
-      "Vendas",
-      formatCurrency(totalAmount),
-      COLORS.success,
-    );
-    drawCard(
-      306,
-      cardY,
-      cardWidth,
-      "",
-      "Prêmios",
-      formatCurrency(totalPayout),
-      COLORS.warning,
-    );
-    drawCard(
-      444,
-      cardY,
-      cardWidth,
-      "",
-      "Resultado",
-      formatCurrency(difference),
-      difference >= 0 ? COLORS.success : COLORS.danger,
-    );
+    const tableBody = [
+      // ---------------------------------------------------
+      // CABEÇALHO
+      // ---------------------------------------------------
 
-    doc.y = cardY + 85;
+      [
+        {
+          text: "Ticket",
+          style: "tableHeader",
+        },
 
-    // Definição das colunas com posições X fixas
-    const columns = [
-      { name: "Ticket", width: 55, x: 30 },
-      { name: "Status", width: 75, x: 85 },
-      { name: "Loteria", width: 80, x: 160 },
-      { name: "Período", width: 60, x: 240 },
-      { name: "Valor", width: 70, x: 300 },
-      { name: "Payout", width: 70, x: 370 },
-      { name: "Data", width: 95, x: 440 },
+        {
+          text: "Status",
+          style: "tableHeader",
+        },
+
+        {
+          text: "Loteria",
+          style: "tableHeader",
+        },
+
+        {
+          text: "Período",
+          style: "tableHeader",
+        },
+
+        {
+          text: "Valor",
+          style: "tableHeader",
+        },
+
+        {
+          text: "Payout",
+          style: "tableHeader",
+        },
+
+        {
+          text: "Data",
+          style: "tableHeader",
+        },
+      ],
     ];
 
-    const tableWidth = 535; // Largura total da tabela
-    const rowHeight = 24;
+    // =====================================================
+    // LINHAS
+    // =====================================================
 
-    const drawTableHeader = () => {
-      const headerY = doc.y;
+    bets.forEach((bet) => {
+      const status = getStatus(bet.status_bet);
 
-      // Fundo do cabeçalho (sem roundedRect para manter alinhamento)
-      doc.rect(30, headerY, tableWidth, rowHeight).fill(COLORS.primary);
+      tableBody.push([
+        {
+          text: `#${String(bet.ticket_number || "").padStart(3, "0")}`,
 
-      // Desenha cada coluna do cabeçalho
-      columns.forEach((column) => {
-        doc
-          .fillColor(COLORS.white)
-          .fontSize(7.5)
-          .font("Helvetica-Bold")
-          .text(column.name, column.x + 6, headerY + 7, {
-            width: column.width - 12,
-            ellipsis: true,
-          });
-      });
+          style: "tableCellBold",
+        },
 
-      doc.y = headerY + rowHeight + 2;
-    };
+        {
+          text: status.label,
 
-    const drawTableRow = (bet, index) => {
-      const rowY = doc.y;
-      const rowColor = index % 2 === 0 ? COLORS.light : COLORS.white;
+          color: status.color,
 
-      // Fundo da linha
-      doc.rect(30, rowY, tableWidth, rowHeight).fill(rowColor);
+          style: "tableCellBold",
+        },
 
-      const status = bet.status_bet?.toLowerCase() || "";
-      let statusLabel = "N/A";
-      let statusColor = COLORS.muted;
+        {
+          text: bet.lottery_name || "-",
 
-      if (status === "won") {
-        statusLabel = "✅ GANHOU";
-        statusColor = COLORS.success;
-      } else if (status === "approved") {
-        statusLabel = "✅ APROVADA";
-        statusColor = COLORS.primary;
-      } else if (status === "pending") {
-        statusLabel = "⏳ PENDENTE";
-        statusColor = COLORS.warning;
-      } else if (status === "lost") {
-        statusLabel = "❌ PERDEU";
-        statusColor = COLORS.danger;
-      } else if (status === "cancelled") {
-        statusLabel = "🚫 CANCELADA";
-        statusColor = COLORS.muted;
-      }
+          style: "tableCell",
+        },
 
-      const values = [
-        `#${String(bet.ticket_number || "").padStart(3, "0")}`,
-        statusLabel,
-        bet.lottery_name || "-",
-        bet.period || "-",
-        formatCurrency(bet.amount),
-        formatCurrency(bet.potential_payout),
-        formatDateToISOInput(bet.created_at),
-      ];
+        {
+          text: bet.period || "-",
 
-      // Desenha cada célula da linha
-      columns.forEach((column, columnIndex) => {
-        const value = values[columnIndex];
-        const isStatus = columnIndex === 1;
+          style: "tableCell",
+        },
 
-        doc
-          .fillColor(isStatus ? statusColor : COLORS.text)
-          .fontSize(7)
-          .font(columnIndex === 0 || isStatus ? "Helvetica-Bold" : "Helvetica")
-          .text(String(value), column.x + 6, rowY + 7, {
-            width: column.width - 12,
-            ellipsis: true,
-          });
-      });
+        {
+          text: formatCurrency(bet.amount),
 
-      doc.y = rowY + rowHeight;
-    };
+          style: "tableCell",
+        },
 
-    // Desenha o cabeçalho inicial
-    drawTableHeader();
+        {
+          text: formatCurrency(bet.potential_payout),
 
-    // Desenha as linhas da tabela
-    bets.forEach((bet, index) => {
-      // Verifica quebra de página
-      if (doc.y > 720) {
-        doc.addPage();
-        doc.y = 30;
-        drawTableHeader();
-      }
+          style: "tableCell",
+        },
 
-      drawTableRow(bet, index);
+        {
+          text: formatDateToISOInput(bet.created_at),
+
+          style: "tableCell",
+        },
+      ]);
     });
 
-    doc.moveDown(1.2);
+    // =====================================================
+    // DOCUMENT DEFINITION
+    // =====================================================
 
-    // ---------- RODAPÉ COM RESUMO ----------
-    if (doc.y > 720) {
-      doc.addPage();
-      doc.y = 30;
-    }
+    const docDefinition = {
+      pageSize: "A4",
 
-    // Linha divisória
-    doc
-      .strokeColor(COLORS.border)
-      .lineWidth(1)
-      .moveTo(30, doc.y)
-      .lineTo(565, doc.y)
-      .stroke();
+      pageOrientation: "portrait",
 
-    doc.moveDown(0.8);
+      pageMargins: [30, 35, 30, 40],
 
-    // Box com informações adicionais
-    doc.roundedRect(30, doc.y, 535, 60, 6).fill(COLORS.light);
+      // ===================================================
+      // HEADER
+      // ===================================================
 
-    const footerY = doc.y + 8;
-    doc
-      .fillColor(COLORS.primary)
-      .fontSize(9)
-      .font("Helvetica-Bold")
-      .text("Resumo Financeiro", 44, footerY);
+      header: (currentPage, pageCount) => {
+        if (currentPage === 1) {
+          return null;
+        }
 
-    doc
-      .fillColor(COLORS.text)
-      .fontSize(8.5)
-      .font("Helvetica")
-      .text(
-        `Comissão: ${formatCurrency(commission)}  |  ` +
-          `Canceladas: ${formatCurrency(totalCancelled)}  |  ` +
-          `Margem: ${totalAmount > 0 ? ((difference / totalAmount) * 100).toFixed(1) : 0}%`,
-        44,
-        footerY + 20,
-      );
+        return {
+          margin: [30, 15, 30, 0],
 
-    doc
-      .fillColor(COLORS.muted)
-      .fontSize(7.5)
-      .font("Helvetica")
-      .text(
-        `Gerado automaticamente em ${new Date().toLocaleString("pt-BR", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        })}`,
-        44,
-        footerY + 36,
-      );
+          columns: [
+            {
+              text: "Relatório Pós-Venda",
 
-    doc.end();
+              fontSize: 8,
+
+              bold: true,
+
+              color: COLORS.primary,
+            },
+
+            {
+              text: `Página ${currentPage} de ${pageCount}`,
+
+              alignment: "right",
+
+              fontSize: 7,
+
+              color: COLORS.muted,
+            },
+          ],
+        };
+      },
+
+      // ===================================================
+      // FOOTER
+      // ===================================================
+
+      footer: (currentPage, pageCount) => {
+        return {
+          margin: [30, 10, 30, 10],
+
+          columns: [
+            {
+              text: "Relatório completo de apostas",
+
+              fontSize: 7,
+
+              color: COLORS.muted,
+            },
+
+            {
+              text: `Página ${currentPage} de ${pageCount}`,
+
+              alignment: "right",
+
+              fontSize: 7,
+
+              color: COLORS.muted,
+            },
+          ],
+        };
+      },
+
+      // ===================================================
+      // CONTEÚDO
+      // ===================================================
+
+      content: [
+        // -------------------------------------------------
+        // TÍTULO
+        // -------------------------------------------------
+
+        {
+          text: "Relatório Pós-Venda",
+
+          style: "title",
+        },
+
+        {
+          text: "Relatório completo de apostas",
+
+          style: "subtitle",
+        },
+
+        // -------------------------------------------------
+        // LINHA
+        // -------------------------------------------------
+
+        {
+          canvas: [
+            {
+              type: "line",
+
+              x1: 0,
+
+              y1: 0,
+
+              x2: 535,
+
+              y2: 0,
+
+              lineWidth: 1,
+
+              lineColor: COLORS.primary,
+            },
+          ],
+
+          margin: [0, 5, 0, 10],
+        },
+
+        // -------------------------------------------------
+        // PERÍODO
+        // -------------------------------------------------
+
+        {
+          text: `Período: ${start_date} — ${finalEndDate}`,
+
+          style: "period",
+
+          margin: [0, 0, 0, 12],
+        },
+
+        // =================================================
+        // CARDS
+        // =================================================
+
+        {
+          columns: [
+            // ---------------------------------------------
+            // TOTAL APOSTAS
+            // ---------------------------------------------
+
+            {
+              stack: [
+                {
+                  text: "TOTAL DE APOSTAS",
+
+                  style: "cardLabel",
+                },
+
+                {
+                  text: String(totalBets),
+
+                  style: "cardValue",
+
+                  color: COLORS.primary,
+                },
+              ],
+
+              style: "card",
+            },
+
+            // ---------------------------------------------
+            // VENDAS
+            // ---------------------------------------------
+
+            {
+              stack: [
+                {
+                  text: "VENDAS",
+
+                  style: "cardLabel",
+                },
+
+                {
+                  text: formatCurrency(totalAmount),
+
+                  style: "cardValue",
+
+                  color: COLORS.success,
+                },
+              ],
+
+              style: "card",
+            },
+
+            // ---------------------------------------------
+            // PRÊMIOS
+            // ---------------------------------------------
+
+            {
+              stack: [
+                {
+                  text: "PRÊMIOS",
+
+                  style: "cardLabel",
+                },
+
+                {
+                  text: formatCurrency(totalPayout),
+
+                  style: "cardValue",
+
+                  color: COLORS.warning,
+                },
+              ],
+
+              style: "card",
+            },
+
+            // ---------------------------------------------
+            // COMISSÃO
+            // ---------------------------------------------
+
+            {
+              stack: [
+                {
+                  text: "COMISSÃO",
+
+                  style: "cardLabel",
+                },
+
+                {
+                  text: formatCurrency(commission),
+
+                  style: "cardValue",
+
+                  color: COLORS.success,
+                },
+              ],
+
+              style: "card",
+            },
+
+            // ---------------------------------------------
+            // RESULTADO
+            // ---------------------------------------------
+
+            {
+              stack: [
+                {
+                  text: "RESULTADO",
+
+                  style: "cardLabel",
+                },
+
+                {
+                  text: formatCurrency(difference),
+
+                  style: "cardValue",
+
+                  color: difference >= 0 ? COLORS.success : COLORS.danger,
+                },
+              ],
+
+              style: "card",
+            },
+          ],
+
+          columnGap: 7,
+
+          margin: [0, 5, 0, 15],
+        },
+
+        // =================================================
+        // TABELA
+        // =================================================
+
+        {
+          table: {
+            headerRows: 1,
+
+            dontBreakRows: true,
+
+            widths: [48, 68, 75, 55, 65, 70, 90],
+
+            body: tableBody,
+          },
+
+          layout: {
+            // ---------------------------------------------
+            // FUNDO
+            // ---------------------------------------------
+
+            fillColor: (rowIndex) => {
+              if (rowIndex === 0) {
+                return COLORS.primary;
+              }
+
+              return rowIndex % 2 === 0 ? COLORS.light : null;
+            },
+
+            // ---------------------------------------------
+            // LINHAS
+            // ---------------------------------------------
+
+            hLineColor: () => COLORS.border,
+
+            vLineColor: () => COLORS.border,
+
+            // ---------------------------------------------
+            // ESPAÇAMENTO
+            // ---------------------------------------------
+
+            paddingLeft: () => 5,
+
+            paddingRight: () => 5,
+
+            paddingTop: () => 5,
+
+            paddingBottom: () => 5,
+          },
+        },
+
+        // =================================================
+        // RESUMO FINANCEIRO
+        // =================================================
+
+        {
+          text: "Resumo Financeiro",
+
+          style: "sectionTitle",
+
+          margin: [0, 15, 0, 5],
+        },
+
+        {
+          table: {
+            widths: ["*", "*", "*"],
+
+            body: [
+              [
+                {
+                  text: "Comissão",
+
+                  bold: true,
+
+                  color: COLORS.primary,
+                },
+
+                {
+                  text: "Canceladas",
+
+                  bold: true,
+
+                  color: COLORS.primary,
+                },
+
+                {
+                  text: "Margem",
+
+                  bold: true,
+
+                  color: COLORS.primary,
+                },
+              ],
+
+              [
+                formatCurrency(commission),
+
+                formatCurrency(totalCancelled),
+
+                `${margin}%`,
+              ],
+            ],
+          },
+
+          layout: {
+            fillColor: (rowIndex) => {
+              if (rowIndex === 0) {
+                return COLORS.light;
+              }
+
+              return null;
+            },
+
+            hLineColor: () => COLORS.border,
+
+            vLineColor: () => COLORS.border,
+
+            paddingLeft: () => 8,
+
+            paddingRight: () => 8,
+
+            paddingTop: () => 6,
+
+            paddingBottom: () => 6,
+          },
+        },
+
+        // =================================================
+        // DATA DE GERAÇÃO
+        // =================================================
+
+        {
+          text: `Gerado automaticamente em ${new Date().toLocaleString(
+            "pt-BR",
+            {
+              day: "2-digit",
+
+              month: "2-digit",
+
+              year: "numeric",
+
+              hour: "2-digit",
+
+              minute: "2-digit",
+            },
+          )}`,
+
+          fontSize: 7,
+
+          color: COLORS.muted,
+
+          margin: [0, 10, 0, 0],
+        },
+      ],
+
+      // ===================================================
+      // ESTILOS
+      // ===================================================
+
+      styles: {
+        title: {
+          fontSize: 24,
+
+          bold: true,
+
+          color: COLORS.primary,
+
+          margin: [0, 0, 0, 3],
+        },
+
+        subtitle: {
+          fontSize: 11,
+
+          color: COLORS.muted,
+
+          margin: [0, 0, 0, 3],
+        },
+
+        period: {
+          fontSize: 10,
+
+          bold: true,
+
+          color: COLORS.dark,
+        },
+
+        // -----------------------------------------------
+        // CARD
+        // -----------------------------------------------
+
+        card: {
+          fillColor: COLORS.white,
+
+          margin: [0, 0, 0, 0],
+
+          padding: [7, 7, 7, 7],
+
+          alignment: "center",
+
+          border: [COLORS.border, COLORS.border, COLORS.border, COLORS.border],
+        },
+
+        cardLabel: {
+          fontSize: 6.5,
+
+          bold: true,
+
+          color: COLORS.muted,
+
+          alignment: "center",
+
+          margin: [0, 0, 0, 4],
+        },
+
+        cardValue: {
+          fontSize: 10,
+
+          bold: true,
+
+          alignment: "center",
+        },
+
+        // -----------------------------------------------
+        // TABELA
+        // -----------------------------------------------
+
+        tableHeader: {
+          fontSize: 7,
+
+          bold: true,
+
+          color: COLORS.white,
+
+          alignment: "left",
+        },
+
+        tableCell: {
+          fontSize: 6.5,
+
+          color: COLORS.text,
+        },
+
+        tableCellBold: {
+          fontSize: 6.5,
+
+          bold: true,
+
+          color: COLORS.text,
+        },
+
+        sectionTitle: {
+          fontSize: 10,
+
+          bold: true,
+
+          color: COLORS.primary,
+        },
+      },
+
+      defaultStyle: {
+        font: "Helvetica",
+
+        fontSize: 8,
+      },
+    };
+
+    // =====================================================
+    // GERAR PDF
+    // =====================================================
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    // =====================================================
+    // NOME DO ARQUIVO
+    // =====================================================
+
+    const fileName = `relatorio-apostas-${start_date}-${finalEndDate}.pdf`;
+
+    // =====================================================
+    // HEADERS
+    // =====================================================
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    // =====================================================
+    // ENVIAR PDF
+    // =====================================================
+
+    pdfDoc.pipe(res);
+
+    pdfDoc.end();
   } catch (error) {
     console.error("Erro ao gerar PDF:", error);
+
+    // =====================================================
+    // EVITAR ERRO DE HEADERS
+    // =====================================================
 
     if (!res.headersSent) {
       return res.status(500).json({
         success: false,
+
         message: "Erro ao gerar relatório PDF.",
+
         error: error.message,
       });
     }
@@ -802,6 +1321,8 @@ const generateReportPDF = async (req, res) => {
     res.end();
   }
 };
+
+export default generateReportPDF;
 
 export {
   createBet,

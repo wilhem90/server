@@ -35,8 +35,8 @@ const getAllBetLotteriesFromSupabase = async ({
   startDate,
   endDate,
   lotteryName,
-  limit = 20,
-  page = 1,
+  limit,
+  page,
   period,
   ticketId,
 }) => {
@@ -48,25 +48,20 @@ const getAllBetLotteriesFromSupabase = async ({
       };
     }
 
-    const safePage =
-      Number.isFinite(Number(page)) && Number(page) > 0 ? Number(page) : 1;
-
-    const safeLimit =
-      Number.isFinite(Number(limit)) && Number(limit) > 0
-        ? Math.min(Number(limit), 100)
-        : 20;
-
+    console.log(typeof startDate, endDate);
     // Llamada RPC actualizada con el nuevo nombre del parámetro de Postgres
     const { data, error } = await supabase.rpc("get_bets_report", {
       p_uuids: uuids, // CAMBIADO: 'p_uuid' ahora es 'p_uuids' para mapear al array de Postgres
-      p_start_date: startDate || null,
-      p_end_date: endDate || null,
+      p_start_date: startDate,
+      p_end_date: endDate,
       p_lottery_name: lotteryName || null,
       p_ticket_id: ticketId || null,
       p_period: period || null,
-      p_page: safePage,
-      p_limit: safeLimit,
+      p_page: page,
+      p_limit: limit,
     });
+
+    console.log(data, error);
 
     if (error) {
       console.error("Erro RPC get_bets_report:", error);
@@ -83,8 +78,8 @@ const getAllBetLotteriesFromSupabase = async ({
       success: true,
       data: Array.isArray(result.data) ? result.data : [],
       meta: {
-        page: Number(result.meta?.page || safePage),
-        limit: Number(result.meta?.limit || safeLimit),
+        page: Number(result.meta?.page || page),
+        limit: Number(result.meta?.limit || limit),
         offset: Number(result.meta?.offset || 0),
         totalRecords: Number(result.meta?.totalRecords || 0),
         totalPages: Number(result.meta?.totalPages || 0),
@@ -192,55 +187,7 @@ const getAllSortedFromSupabase = async ({
   return { success: true, data };
 };
 
-//Get full bets report - Mantido original (perfeito usando RPC)
-const getFullBetsReportFromSupabase = async ({
-  uuid,
-  startDate,
-  endDate,
-  period,
-  lotteryName,
-  ticketId,
-}) => {
-  try {
-    if (!uuid) {
-      return {
-        success: false,
-        error: "O parâmetro uuid é obrigatório.",
-      };
-    }
 
-    const { data, error } = await supabase.rpc("get_bets_report_pdf", {
-      p_uuid: uuid,
-      p_start_date: startDate || null,
-      p_end_date: endDate || null,
-      p_period: period || null,
-      p_lottery_name: lotteryName || null,
-      p_ticket_id: ticketId || null,
-    });
-
-    if (error) {
-      console.error("Erro RPC get_bets_report_pdf:", error);
-
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    return {
-      success: true,
-      data: data?.data || [],
-      totals: data?.totals || {},
-    };
-  } catch (error) {
-    console.error("Erro getFullBetsReportFromSupabase:", error);
-
-    return {
-      success: false,
-      error: error.message,
-    };
-  }
-};
 export {
   createBetFromSupabase,
   getAllBetLotteriesFromSupabase,
@@ -248,5 +195,4 @@ export {
   cancelTicketFromSupabse,
   getLotteriesFromSupabase,
   getAllSortedFromSupabase,
-  getFullBetsReportFromSupabase,
 };
