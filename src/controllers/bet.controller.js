@@ -118,33 +118,7 @@ const createBet = async (req, res) => {
     // Mapeia a resposta separando os sucessos e falhas na mesma lista
     const processedTickets = results.map((refCreateBet, index) => {
       if (refCreateBet.success) {
-        return {
-          status: "success",
-          id: refCreateBet.ticketRef?.o_ticket_ref,
-          ticket_number: refCreateBet.ticketRef?.o_ticket_number
-            ? String(refCreateBet.ticketRef.o_ticket_number).padStart(3, "0")
-            : null,
-          betId: refCreateBet.betId,
-          lotteryName: validLotteries[index].lottery_name,
-          period: validLotteries[index].period,
-          amount,
-          chosen_values,
-        };
-      } else {
-        // Formata a mensagem de erro específica deste ticket
-        const errorMessage =
-          refCreateBet.error?.code === "23505"
-            ? "Please check your external key reference."
-            : refCreateBet.error?.message || "Unknown error";
-
-        return {
-          status: "failed",
-          error: errorMessage,
-          lotteryName: validLotteries[index].lottery_name,
-          period: validLotteries[index].period,
-          amount,
-          chosen_values,
-        };
+        return refCreateBet.ticketRef;
       }
     });
 

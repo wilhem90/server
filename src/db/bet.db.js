@@ -25,6 +25,8 @@ const createBetFromSupabase = async (
     return { success: false, error };
   }
 
+  console.log(data);
+
   // data é o ticket_ref (UUID) retornado pela função RPC do PostgreSQL
   return { success: true, ticketRef: data };
 };
@@ -186,7 +188,6 @@ const getAllSortedFromSupabase = async ({
   }
   return { success: true, data };
 };
-
 
 export {
   createBetFromSupabase,
