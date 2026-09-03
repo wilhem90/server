@@ -53,6 +53,8 @@ const winningFormat = async (req, res, next) => {
 
 //Validate chosen_values and amount
 const checkMetadata = async (req, res, next) => {
+  console.log("bet.middleware");
+
   const { chosen_values } = req.body;
 
   if (!chosen_values) {
@@ -65,7 +67,6 @@ const checkMetadata = async (req, res, next) => {
   let soma = 0;
 
   for (const key in chosen_values) {
-
     if (Object.hasOwnProperty.call(chosen_values, key)) {
       const element = chosen_values[key];
 
@@ -78,9 +79,7 @@ const checkMetadata = async (req, res, next) => {
             });
           }
         });
-      }
-
-      if (key === "l3") {
+      } else if (key === "l3") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 3) {
             return res.status(400).json({
@@ -89,9 +88,7 @@ const checkMetadata = async (req, res, next) => {
             });
           }
         });
-      }
-
-      if (key === "l4") {
+      } else if (key === "l4") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 4) {
             return res.status(400).json({
@@ -100,9 +97,7 @@ const checkMetadata = async (req, res, next) => {
             });
           }
         });
-      }
-
-      if (["l51", "l52", "l53"].includes(key)) {
+      } else if (["l51", "l52", "l53"].includes(key)) {
         Object.keys(element).forEach((key) => {
           if (key.length !== 5) {
             return res.status(400).json({
@@ -111,9 +106,7 @@ const checkMetadata = async (req, res, next) => {
             });
           }
         });
-      }
-
-      if (key === "mar") {
+      } else if (key === "mar") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 4) {
             return res.status(400).json({
@@ -121,6 +114,11 @@ const checkMetadata = async (req, res, next) => {
               message: "Married values must be 4 digits.",
             });
           }
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid key: ${key}`,
         });
       }
 
