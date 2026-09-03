@@ -20,6 +20,7 @@ import {
   isAdminUser,
   linkConfirmEmail,
   privateRoute,
+  refreshToken,
   verifyCodeOTP,
 } from "../middlewares/auth.middleware.js";
 import limiter from "../configs/limiter.js";
@@ -55,6 +56,7 @@ userRoutes.get(
 
 userRoutes.post("/reset-password", limiter(900_000, 5), resetPasswordByEmail);
 userRoutes.post("/update-password", verifyCodeOTP, updateUser);
+userRoutes.post("/refresh-token", privateRoute, refreshToken);
 
 // Get my subuser
 userRoutes.get("/subuser", privateRoute, getMySubuser);

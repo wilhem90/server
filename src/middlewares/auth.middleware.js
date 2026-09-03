@@ -16,8 +16,8 @@ import {
 // CONSTANTES
 // =====================================================
 const TOKEN_EXPIRY = {
-  ACCESS: "7d",
-  REFRESH: "30d",
+  ACCESS: "15m",
+  REFRESH: "7d",
   EMAIL_VALIDATE: "24h",
 };
 

@@ -65,12 +65,11 @@ const checkMetadata = async (req, res, next) => {
   let soma = 0;
 
   for (const key in chosen_values) {
-    // console.log(key);
 
     if (Object.hasOwnProperty.call(chosen_values, key)) {
       const element = chosen_values[key];
 
-      if (key === "bor") {
+      if (key === "BOR") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 2) {
             return res.status(400).json({
@@ -81,7 +80,7 @@ const checkMetadata = async (req, res, next) => {
         });
       }
 
-      if (key === "lotto3") {
+      if (key === "L3") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 3) {
             return res.status(400).json({
@@ -92,7 +91,7 @@ const checkMetadata = async (req, res, next) => {
         });
       }
 
-      if (key === "lotto4") {
+      if (key === "L4") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 4) {
             return res.status(400).json({
@@ -103,7 +102,7 @@ const checkMetadata = async (req, res, next) => {
         });
       }
 
-      if (["lotto51", "lotto52", "lotto53"].includes(key)) {
+      if (["L51", "L52", "L53"].includes(key)) {
         Object.keys(element).forEach((key) => {
           if (key.length !== 5) {
             return res.status(400).json({
@@ -114,7 +113,7 @@ const checkMetadata = async (req, res, next) => {
         });
       }
 
-      if (key === "married") {
+      if (key === "MAR") {
         Object.keys(element).forEach((key) => {
           if (key.length !== 4) {
             return res.status(400).json({
