@@ -1,8 +1,5 @@
 import jwt from "jsonwebtoken";
-import z from "zod";
 import bcrypt from "bcrypt";
-import { validateBody } from "./validate.middleware.js";
-import { loginUserSchema } from "../schemas/user.schema.js";
 import { linkValidateEmail } from "../mails/linkValidateEmail.js";
 import { checkTokenListFromSupaBase } from "../db/auth.db.js";
 import sendEmail from "../configs/nodemailer.js";
@@ -11,6 +8,7 @@ import {
   getSubUsersFromSupabase,
   getUserAndWalletByEmailUserNameDocumentIdFromSupabase,
 } from "../db/user.db.js";
+import { verifyCompanyInDatabase } from "../db/companies.db.js";
 
 // =====================================================
 // CONSTANTES
@@ -83,25 +81,17 @@ const refreshToken = async (data) => {
 const privateRoute = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
+    const profile = await verifyCompanyInDatabase(token);
+    
+    if (!profile.success) {
       return res.status(401).json({
         success: false,
         message: ERROR_MESSAGES.NOT_AUTHORIZED,
       });
     }
-
-    const decoded = verifyToken(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = profile.data.user;
     next();
   } catch (error) {
-    if (error.message === "jwt expired") {
-      return res.status(401).json({
-        success: false,
-        message: "Session expired. Please login again.",
-      });
-    }
-
     console.error("Private route error:", error);
     return res.status(500).json({
       success: false,

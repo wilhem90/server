@@ -17,7 +17,6 @@ import {
 import {
   checkTokenIfTokenNotBlocked,
   isAdminOrSubUser,
-  isAdminUser,
   linkConfirmEmail,
   privateRoute,
   refreshToken,

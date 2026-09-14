@@ -389,7 +389,7 @@ const welcomeEmail = (first_name, enterprise, supportEmail) => {
           <div class="highlight-box">
             <h3>🎯 O que você pode fazer agora:</h3>
             <ul>
-              <li>Acessar sua conta e personalizar seu perfil</li>
+              <li>Acessar sua conta para finalizar o cadastro</li>
               <li>Explorar nossos recursos exclusivos</li>
               <li>Conectar-se com outros membros da comunidade</li>
               <li>Começar a usar todas as funcionalidades</li>
