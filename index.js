@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import cors from "cors";
-import morgan from "morgan";
+// import morgan from "morgan";
 import profilRouter from "./src/routes/profil.routes.js";
 import companyRouter from "./src/routes/company.routes.js";
 import topupRouter from "./src/routes/topup.routes.js";
