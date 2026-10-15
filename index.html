@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV - Ponto de Venda</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        header h1 span {
+            color: #667eea;
+        }
+
+        .data-hora {
+            color: #666;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .produtos-lista {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .produto-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+
+        .produto-item:hover {
+            background: #f7f7f7;
+            border-color: #667eea;
+        }
+
+        .produto-info {
+            flex: 1;
+        }
+
+        .produto-info strong {
+            display: block;
+            color: #333;
+            margin-bottom: 3px;
+        }
+
+        .produto-info small {
+            color: #888;
+        }
+
+        .produto-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .produto-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 5px;
+        }
+
+        .carrinho {
+            position: sticky;
+            top: 20px;
+        }
+
+        .carrinho-lista {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .carrinho-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .carrinho-item-info {
+            flex: 1;
+        }
+
+        .carrinho-item-info strong {
+            display: block;
+            color: #333;
+        }
+
+        .carrinho-item-info small {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .carrinho-item-valor {
+            font-weight: 700;
+            color: #48bb78;
+            margin-right: 10px;
+        }
+
+        .btn-remove {
+            background: #f56565;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .btn-remove:hover {
+            background: #e53e3e;
+        }
+
+        .total-section {
+            border-top: 2px solid #667eea;
+            padding-top: 15px;
+            margin-top: 15px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .total-final {
+            font-size: 22px;
+            font-weight: 700;
+            color: #333;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .total-final span {
+            color: #48bb78;
+        }
+
+        .vazio {
+            text-align: center;
+            padding: 30px;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions .btn {
+            flex: 1;
+        }
+
+        .recibo {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+        }
+
+        .search-box {
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #888;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .estoque-baixo {
+            color: #e53e3e;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 <span>PDV</span> - Ponto de Venda</h1>
+            <div class="data-hora" id="dataHora"></div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Coluna Esquerda -->
+            <div>
+                <div class="card">
+                    <div class="tabs">
+                        <button class="tab active" onclick="mudarTab('venda')">🛍️ Venda</button>
+                        <button class="tab" onclick="mudarTab('cadastro')">📦 Cadastrar Produto</button>
+                        <button class="tab" onclick="mudarTab('estoque')">📋 Estoque</button>
+                        <button class="tab" onclick="mudarTab('historico')">📊 Histórico</button>
+                    </div>
+
+                    <!-- Tab Venda -->
+                    <div id="tab-venda" class="tab-content active">
+                        <h2>Adicionar ao Carrinho</h2>
+                        <div class="search-box">
+                            <input type="text" id="buscaProduto" placeholder="🔍 Buscar produto por nome ou código..." oninput="buscarProdutos()">
+                        </div>
+                        <div class="produtos-lista" id="listaProdutos">
+                            <div class="vazio">Nenhum produto cadastrado</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Cadastro -->
+                    <div id="tab-cadastro" class="tab-content">
+                        <h2>Cadastrar Novo Produto</h2>
+                        <form id="formProduto" onsubmit="cadastrarProduto(event)">
+                            <input type="hidden" id="produtoId">
+                            <div class="form-group">
+                                <label>Código de Barras</label>
+                                <input type="text" id="codigo" placeholder="Ex: 7891234567890" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nome do Produto</label>
+                                <input type="text" id="nome" placeholder="Ex: Camiseta Branca" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Preço de Custo (R$)</label>
+                                    <input type="number" id="precoCusto" step="0.01" min="0" placeholder="0,00" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Preço de Venda (R$)</label>
+                                    <input type="number" id="precoVenda" step="0.01" min="0" placeholder="0,00" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Quantidade em Estoque</label>
+                                    <input type="number" id="estoque" min="0" placeholder="0" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Categoria</label>
+                                    <select id="categoria">
+                                        <option value="Geral">Geral</option>
+                                        <option value="Alimentos">Alimentos</option>
+                                        <option value="Bebidas">Bebidas</option>
+                                        <option value="Roupas">Roupas</option>
+                                        <option value="Eletrônicos">Eletrônicos</option>
+                                        <option value="Higiene">Higiene</option>
+                                        <option value="Limpeza">Limpeza</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary btn-full">💾 Salvar Produto</button>
+                                <button type="button" class="btn btn-warning" onclick="limparFormulario()">🔄 Limpar</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tab Estoque -->
+                    <div id="tab-estoque" class="tab-content">
+                        <h2>Gerenciar Estoque</h2>
+                        <div class="search-box">
+                            <input type="text" id="buscaEstoque" placeholder="🔍 Buscar no estoque..." oninput="renderizarEstoque()">
+                        </div>
+                        <div class="produtos-lista" id="listaEstoque">
+                            <div class="vazio">Nenhum produto cadastrado</div>
+                        </div>
+                    </div>
+
+                    <!-- Tab Histórico -->
+                    <div id="tab-historico" class="tab-content">
+                        <h2>Histórico de Vendas</h2>
+                        <div class="produtos-lista" id="listaHistorico">
+                            <div class="vazio">Nenhuma venda realizada</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna Direita - Carrinho -->
+            <div class="carrinho">
+                <div class="card">
+                    <h2>🛒 Carrinho de Compras</h2>
+                    <div class="carrinho-lista" id="carrinhoLista">
+                        <div class="vazio">Carrinho vazio</div>
+                    </div>
+                    
+                    <div class="total-section">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">R$ 0,00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Desconto (%):</span>
+                            <input type="number" id="desconto" value="0" min="0" max="100" step="0.1" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 5px;" onchange="calcularTotal()">
+                        </div>
+                        <div class="total-row">
+                            <span>Desconto (R$):</span>
+                            <span id="valorDesconto">R$ 0,00</span>
+                        </div>
+                        <div class="total-final">
+                            TOTAL: <span id="total">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <div class="btn-group" style="margin-top: 15px;">
+                        <button class="btn btn-success btn-full" onclick="finalizarVenda()">💰 Finalizar Venda</button>
+                        <button class="btn btn-danger btn-full" onclick="limparCarrinho()">🗑️ Limpar Carrinho</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Recibo -->
+    <div class="modal" id="modalRecibo">
+        <div class="modal-content">
+            <h2>✅ Venda Realizada com Sucesso!</h2>
+            <div class="recibo" id="reciboConteudo"></div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="imprimirRecibo()">🖨️ Imprimir</button>
+                <button class="btn btn-success" onclick="fecharModalRecibo()">✅ OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pagamento -->
+    <div class="modal" id="modalPagamento">
+        <div class="modal-content">
+            <h2>💳 Forma de Pagamento</h2>
+            <div class="form-group">
+                <label>Forma de Pagamento</label>
+                <select id="formaPagamento">
+                    <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cartão de Débito">Cartão de Débito</option>
+                    <option value="Cartão de Crédito">Cartão de Crédito</option>
+                    <option value="PIX">PIX</option>
+                </select>
+            </div>
+            <div class="form-group" id="campoTroco" style="display: none;">
+                <label>Valor Recebido (R$)</label>
+                <input type="number" id="valorRecebido" step="0.01" min="0" placeholder="0,00" oninput="calcularTroco()">
+                <div style="margin-top: 10px; font-size: 18px; font-weight: 700; color: #48bb78;">
+                    Troco: <span id="troco">R$ 0,00</span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="fecharModalPagamento()">Cancelar</button>
+                <button class="btn btn-success" onclick="confirmarPagamento()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ ESTADO ============
+        let produtos = JSON.parse(localStorage.getItem('pdv_produtos')) || [];
+        let carrinho = [];
+        let historico = JSON.parse(localStorage.getItem('pdv_historico')) || [];
+        let produtoEmEdicao = null;
+
+        // ============ INICIALIZAÇÃO ============
+        document.addEventListener('DOMContentLoaded', () => {
+            atualizarDataHora();
+            setInterval(atualizarDataHora, 1000);
+            renderizarProdutos();
+            renderizarEstoque();
+            renderizarHistorico();
+            
+            // Evento de forma de pagamento
+            document.getElementById('formaPagamento').addEventListener('change', (e) => {
+                document.getElementById('campoTroco').style.display = 
+                    e.target.value === 'Dinheiro' ? 'block' : 'none';
+            });
+        });
+
+        function atualizarDataHora() {
+            const agora = new Date();
+            const data = agora.toLocaleDateString('pt-BR');
+            const hora = agora.toLocaleTimeString('pt-BR');
+            document.getElementById('dataHora').innerHTML = `📅 ${data}<br>🕐 ${hora}`;
+        }
+
+        // ============ NAVEGAÇÃO ============
+        function mudarTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        // ============ PRODUTOS ============
+        function cadastrarProduto(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('produtoId').value;
+            const codigo = document.getElementById('codigo').value.trim();
+            const nome = document.getElementById('nome').value.trim();
+            const precoCusto = parseFloat(document.getElementById('precoCusto').value) || 0;
+            const precoVenda = parseFloat(document.getElementById('precoVenda').value) || 0;
+            const estoque = parseInt(document.getElementById('estoque').value) || 0;
+            const categoria = document.getElementById('categoria').value;
+
+            // Validação
+            if (!codigo || !nome) {
+                alert('❌ Preencha todos os campos obrigatórios!');
+                return;
+            }
+
+            // Verifica código duplicado
+            const codigoExiste = produtos.some(p => p.codigo === codigo && p.id !== id);
+            if (codigoExiste) {
+                alert('❌ Já existe um produto com este código de barras!');
+                return;
+            }
+
+            if (id) {
+                // Editar
+                const index = produtos.findIndex(p => p.id === id);
+                produtos[index] = { id, codigo, nome, precoCusto, precoVenda, estoque, categoria };
+                alert('✅ Produto atualizado com sucesso!');
+            } else {
+                // Novo
+                const novoProduto = {
+                    id: Date.now().toString(),
+                    codigo,
+                    nome,
+                    precoCusto,
+                    precoVenda,
+                    estoque,
+                    categoria
+                };
+                produtos.push(novoProduto);
+                alert('✅ Produto cadastrado com sucesso!');
+            }
+
+            salvarDados();
+            limparFormulario();
+            renderizarProdutos();
+            renderizarEstoque();
+        }
+
+        function editarProduto(id) {
+            const produto = produtos.find(p => p.id === id);
+            if (!produto) return;
+
+            document.getElementById('produtoId').value = produto.id;
+            document.getElementById('codigo').value = produto.codigo;
+            document.getElementById('nome').value = produto.nome;
+            document.getElementById('precoCusto').value = produto.precoCusto;
+            document.getElementById('precoVenda').value = produto.precoVenda;
+            document.getElementById('estoque').value = produto.estoque;
+            document.getElementById('categoria').value = produto.categoria;
+
+            mudarTab('cadastro');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab')[1].classList.add('active');
+        }
+
+        function excluirProduto(id) {
+            if (!confirm('⚠️ Deseja realmente excluir este produto?')) return;
+            
+            produtos = produtos.filter(p => p.id !== id);
+            salvarDados();
+            renderizarProdutos();
+            renderizarEstoque();
+            alert('✅ Produto excluído!');
+        }
+
+        function limparFormulario() {
+            document.getElementById('formProduto').reset();
+            document.getElementById('produtoId').value = '';
+        }
+
+        // ============ RENDERIZAÇÃO ============
+        function renderizarProdutos() {
+            const busca = document.getElementById('buscaProduto')?.value.toLowerCase() || '';
+            const lista = document.getElementById('listaProdutos');
+            
+            const filtrados = produtos.filter(p => 
+                p.nome.toLowerCase().includes(busca) || 
+                p.codigo.includes(busca)
+            );
+
+            if (filtrados.length === 0) {
+                lista.innerHTML = '<div class="vazio">Nenhum produto encontrado</div>';
+                return;
+            }
+
+            lista.innerHTML = filtrados.map(p => `
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <strong>${p.nome}</strong>
+                        <small>Cód: ${p.codigo} | ${p.categoria} | Estoque: ${p.estoque}</small>
+                    </div>
+                    <div class="produto-actions">
+                        <span style="font-weight: 700; color: #48bb78; margin-right: 10px;">R$ ${p.precoVenda.toFixed(2)}</span>
+                        <button class="btn btn-primary" onclick="adicionarAoCarrinho('${p.id}')" ${p.estoque <= 0 ? 'disabled style="opacity:0.5"' : ''}>
+                            ${p.estoque <= 0 ? 'Sem Estoque' : '+ Adicionar'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function buscarProdutos() {
+            renderizarProdutos();
+        }
+
+        function renderizarEstoque() {
+            const busca = document.getElementById('buscaEstoque')?.value.toLowerCase() || '';
+            const lista = document.getElementById('listaEstoque');
+            
+            const filtrados = produtos.filter(p => 
+                p.nome.toLowerCase().includes(busca) || 
+                p.codigo.includes(busca)
+            );
+
+            if (filtrados.length === 0) {
+                lista.innerHTML = '<div class="vazio">Nenhum produto encontrado</div>';
+                return;
+            }
+
+            lista.innerHTML = filtrados.map(p => `
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <strong>${p.nome}</strong>
+                        <small>
+                            Cód: ${p.codigo} | ${p.categoria}<br>
+                            Custo: R$ ${p.precoCusto.toFixed(2)} | Venda: R$ ${p.precoVenda.toFixed(2)}<br>
+                            <span class="${p.estoque <= 5 ? 'estoque-baixo' : ''}">
+                                Estoque: ${p.estoque} ${p.estoque <= 5 ? '⚠️' : ''}
+                            </span>
+                        </small>
+                    </div>
+                    <div class="produto-actions">
+                        <button class="btn btn-warning" onclick="editarProduto('${p.id}')">✏️</button>
+                        <button class="btn btn-danger" onclick="excluirProduto('${p.id}')">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderizarHistorico() {
+            const lista = document.getElementById('listaHistorico');
+            
+            if (historico.length === 0) {
+                lista.innerHTML = '<div class="vazio">Nenhuma venda realizada</div>';
+                return;
+            }
+
+            lista.innerHTML = historico.slice().reverse().map(v => `
+                <div class="produto-item">
+                    <div class="produto-info">
+                        <strong>Venda #${v.id}</strong>
+                        <small>
+                            ${v.data} às ${v.hora}<br>
+                            ${v.itens.length} item(ns) | Pagamento: ${v.pagamento}<br>
+                            Total: <strong style="color: #48bb78;">R$ ${v.total.toFixed(2)}</strong>
+                        </small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============ CARRINHO ============
+        function adicionarAoCarrinho(produtoId) {
+            const produto = produtos.find(p => p.id === produtoId);
+            if (!produto) return;
+
+            if (produto.estoque <= 0) {
+                alert('❌ Produto sem estoque!');
+                return;
+            }
+
+            const itemExistente = carrinho.find(item => item.id === produtoId);
+            
+            if (itemExistente) {
+                if (itemExistente.quantidade >= produto.estoque) {
+                    alert('❌ Quantidade máxima em estoque atingida!');
+                    return;
+                }
+                itemExistente.quantidade++;
+            } else {
+                carrinho.push({
+                    id: produto.id,
+                    nome: produto.nome,
+                    preco: produto.precoVenda,
+                    quantidade: 1
+                });
+            }
+
+            renderizarCarrinho();
+        }
+
+        function removerDoCarrinho(produtoId) {
+            carrinho = carrinho.filter(item => item.id !== produtoId);
+            renderizarCarrinho();
+        }
+
+        function alterarQuantidade(produtoId, delta) {
+            const item = carrinho.find(i => i.id === produtoId);
+            const produto = produtos.find(p => p.id === produtoId);
+            if (!item || !produto) return;
+
+            const novaQtd = item.quantidade + delta;
+            
+            if (novaQtd <= 0) {
+                removerDoCarrinho(produtoId);
+                return;
+            }
+
+            if (novaQtd > produto.estoque) {
+                alert('❌ Quantidade máxima em estoque atingida!');
+                return;
+            }
+
+            item.quantidade = novaQtd;
+            renderizarCarrinho();
+        }
+
+        function renderizarCarrinho() {
+            const lista = document.getElementById('carrinhoLista');
+            
+            if (carrinho.length === 0) {
+                lista.innerHTML = '<div class="vazio">Carrinho vazio</div>';
+                calcularTotal();
+                return;
+            }
+
+            lista.innerHTML = carrinho.map(item => `
+                <div class="carrinho-item">
+                    <div class="carrinho-item-info">
+                        <strong>${item.nome}</strong>
+                        <small>
+                            ${item.quantidade}x R$ ${item.preco.toFixed(2)}
+                            <button class="btn-remove" onclick="alterarQuantidade('${item.id}', -1)" style="margin-left: 5px;">−</button>
+                            <button class="btn-remove" onclick="alterarQuantidade('${item.id}', 1)" style="background:#48bb78; margin-left: 2px;">+</button>
+                        </small>
+                    </div>
+                    <div>
+                        <span class="carrinho-item-valor">R$ ${(item.preco * item.quantidade).toFixed(2)}</span>
+                        <button class="btn-remove" onclick="removerDoCarrinho('${item.id}')">×</button>
+                    </div>
+                </div>
+            `).join('');
+
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const subtotal = carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+            const descontoPercent = parseFloat(document.getElementById('desconto').value) || 0;
+            const valorDesconto = subtotal * (descontoPercent / 100);
+            const total = subtotal - valorDesconto;
+
+            document.getElementById('subtotal').textContent = `R$ ${subtotal.toFixed(2)}`;
+            document.getElementById('valorDesconto').textContent = `R$ ${valorDesconto.toFixed(2)}`;
+            document.getElementById('total').textContent = `R$ ${total.toFixed(2)}`;
+
+            return { subtotal, valorDesconto, total, descontoPercent };
+        }
+
+        function limparCarrinho() {
+            if (carrinho.length === 0) return;
+            if (!confirm('⚠️ Deseja limpar o carrinho?')) return;
+            carrinho = [];
+            document.getElementById('desconto').value = 0;
+            renderizarCarrinho();
+        }
+
+        // ============ FINALIZAR VENDA ============
+        function finalizarVenda() {
+            if (carrinho.length === 0) {
+                alert('❌ Carrinho vazio!');
+                return;
+            }
+
+            document.getElementById('modalPagamento').classList.add('active');
+        }
+
+        function fecharModalPagamento() {
+            document.getElementById('modalPagamento').classList.remove('active');
+            document.getElementById('valorRecebido').value = '';
+            document.getElementById('troco').textContent = 'R$ 0,00';
+        }
+
+        function calcularTroco() {
+            const { total } = calcularTotal();
+            const recebido = parseFloat(document.getElementById('valorRecebido').value) || 0;
+            const troco = recebido - total;
+            document.getElementById('troco').textContent = `R$ ${Math.max(0, troco).toFixed(2)}`;
+        }
+
+        function confirmarPagamento() {
+            const formaPagamento = document.getElementById('formaPagamento').value;
+            const { subtotal, valorDesconto, total, descontoPercent } = calcularTotal();
+
+            if (formaPagamento === 'Dinheiro') {
+                const recebido = parseFloat(document.getElementById('valorRecebido').value) || 0;
+                if (recebido < total) {
+                    alert('❌ Valor recebido insuficiente!');
+                    return;
+                }
+            }
+
+            // Baixa no estoque
+            carrinho.forEach(item => {
+                const produto = produtos.find(p => p.id === item.id);
+                if (produto) {
+                    produto.estoque -= item.quantidade;
+                }
+            });
+
+            // Registra venda
+            const agora = new Date();
+            const venda = {
+                id: (historico.length + 1).toString().padStart(4, '0'),
+                data: agora.toLocaleDateString('pt-BR'),
+                hora: agora.toLocaleTimeString('pt-BR'),
+                itens: [...carrinho],
+                subtotal,
+                desconto: valorDesconto,
+                descontoPercent,
+                total,
+                pagamento: formaPagamento
+            };
+
+            historico.push(venda);
+            salvarDados();
+
+            // Gera recibo
+            gerarRecibo(venda);
+
+            // Limpa carrinho
+            carrinho = [];
+            document.getElementById('desconto').value = 0;
+            renderizarCarrinho();
+            renderizarProdutos();
+            renderizarEstoque();
+            renderizarHistorico();
+
+            fecharModalPagamento();
+            document.getElementById('modalRecibo').classList.add('active');
+        }
+
+        function gerarRecibo(venda) {
+            let recibo = '========================================\n';
+            recibo += '         🛒 PDV - COMPROVANTE         \n';
+            recibo += '========================================\n';
+            recibo += `Venda: #${venda.id}\n`;
+            recibo += `Data: ${venda.data} às ${venda.hora}\n`;
+            recibo += '----------------------------------------\n';
+            recibo += 'ITENS:\n';
+            recibo += '----------------------------------------\n';
+
+            venda.itens.forEach(item => {
+                recibo += `${item.nome}\n`;
+                recibo += `  ${item.quantidade}x R$ ${item.preco.toFixed(2)} = R$ ${(item.preco * item.quantidade).toFixed(2)}\n`;
+            });
+
+            recibo += '----------------------------------------\n';
+            recibo += `Subtotal: R$ ${venda.subtotal.toFixed(2)}\n`;
+            if (venda.desconto > 0) {
+                recibo += `Desconto (${venda.descontoPercent}%): -R$ ${venda.desconto.toFixed(2)}\n`;
+            }
+            recibo += `TOTAL: R$ ${venda.total.toFixed(2)}\n`;
+            recibo += `Pagamento: ${venda.pagamento}\n`;
+            recibo += '========================================\n';
+            recibo += '     Obrigado pela preferência! 🙏     \n';
+            recibo += '========================================\n';
+
+            document.getElementById('reciboConteudo').textContent = recibo;
+        }
+
+        function fecharModalRecibo() {
+            document.getElementById('modalRecibo').classList.remove('active');
+        }
+
+        function imprimirRecibo() {
+            const conteudo = document.getElementById('reciboConteudo').textContent;
+            const janela = window.open('', '', 'width=400,height=600');
+            janela.document.write('<pre style="font-family: Courier New; font-size: 12px;">' + conteudo + '</pre>');
+            janela.document.close();
+            janela.print();
+        }
+
+        // ============ PERSISTÊNCIA ============
+        function salvarDados() {
+            localStorage.setItem('pdv_produtos', JSON.stringify(produtos));
+            localStorage.setItem('pdv_historico', JSON.stringify(historico));
+        }
+
+        // ============ ATALHOS ============
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                finalizarVenda();
+            }
+            if (e.key === 'Escape') {
+                fecharModalPagamento();
+                fecharModalRecibo();
+            }
+        });
+    </script>
+</body>
+</html>

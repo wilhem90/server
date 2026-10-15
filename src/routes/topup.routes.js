@@ -1,31 +1,36 @@
-import { Router } from 'express';
-import { privateRoute } from '../middlewares/auth.middleware.js';
-import controlTopUp from '../controllers/topup.controller.js';
-const routerTopup = Router();
+import express from "express";
+import controlTopup from "../controllers/topup.controller.js";
+import middlewareAuthProfil from "../middleware/auth.profil.js";
+const router = express.Router();
 
-routerTopup.get(
-  '/countries',
-privateRoute,
-  controlTopUp.GetCountries
+// router.post("/create", middlewareAuthProfil.validateAuth, controlTopup.createTopup);
+router.get(
+  "/countries",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.GetCountries,
 );
-routerTopup.get(
-  '/providers',
-  privateRoute,
-  controlTopUp.GetProviders
+router.get(
+  "/providers",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.GetProviders,
 );
-routerTopup.get(
-  '/products',
-  privateRoute,
-  controlTopUp.GetProducts
+router.get(
+  "/products",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.GetProducts,
 );
-routerTopup.post(
-  '/create-topup',
-  privateRoute,
-  controlTopUp.SendTopup
+router.post(
+  "/send",
+  middlewareAuthProfil.validateAuth,
+  // (req, res, next) =>
+  //   middlewareAuthProfil.checkPermission(req, res, next, "topup", "write"),
+  controlTopup.SendTopup,
 );
-routerTopup.get(
-  '/get-topups',
-  privateRoute,
-  controlTopUp.GetTopups
+
+router.get(
+  "/history",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.getTopupHistory,
 );
-export default routerTopup;
+
+export default router;

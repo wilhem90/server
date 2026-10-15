@@ -1,0 +1,27 @@
+import { Router } from "express";
+import controlProfil from "../controllers/profil.controller.js";
+import companyController from "../controllers/company.controller.js";
+import middlewareAuthProfil from "../middleware/auth.profil.js";
+const router = Router();
+
+router.post("/create-profil", controlProfil.createProfil);
+router.post("/login", controlProfil.loginProfil);
+router.get(
+  "/me",
+  middlewareAuthProfil.validateAuth,
+  controlProfil.getProfileByUsername,
+);
+
+router.post(
+  "/create",
+  middlewareAuthProfil.validateAuth,
+  companyController.createCompany,
+);
+
+router.get(
+  "/my-companies",
+  middlewareAuthProfil.validateAuth,
+  companyController.myCompanies,
+);
+
+export default router;

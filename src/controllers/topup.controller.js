@@ -1,300 +1,569 @@
-import requestDing from "../configs/requestDing.js";
-import modelTopUp from "../db/topup.db.js";
+import requestDing from "../apis/ding.js";
+import modelTopup from "../models/supabase/topup.supabase.js";
+import wallet_price_tiers from "../utils/generatePriceTiers.js";
 
-// Control topup
-const controlTopUp = {
-  // ============================================================
-  // BUSCAR PAÍSES
-  // ============================================================
+async function getCurrentWallet(req) {
+  return await wallet_price_tiers.getConfigCost({
+    userId: req.user?.id,
+    code: "topup",
+    type: req.user?.type,
+  });
+}
+
+function generatePriceTiers(
+  minValue,
+  maxValue,
+  step,
+  startPercent,
+  endPercent,
+) {
+  if (minValue < 0 || maxValue <= 0 || step <= 0) {
+    throw new Error("Invalid price tier parameters");
+  }
+
+  const tiers = [];
+  const stepsCount = Math.floor((maxValue - minValue) / step);
+  const percentStep = (startPercent - endPercent) / stepsCount;
+
+  for (let i = 0; i <= stepsCount; i++) {
+    const tierMin = minValue + i * step;
+    const tierMax = i === stepsCount ? Infinity : tierMin + step - 1;
+    const percent = startPercent - percentStep * i;
+    tiers.push({
+      min: tierMin,
+      max: tierMax,
+      percent: Number(percent.toFixed(2)),
+    });
+  }
+
+  return tiers;
+}
+
+function getPercent(value, tiers = []) {
+  const tier = tiers.find((t) => value >= t.min && value <= t.max);
+  return tier ? tier.percent : 0;
+}
+
+function calculatePrice(value, isReverse = false, tiers = []) {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  if (typeof num !== "number" || isNaN(num) || !isFinite(num)) {
+    throw new Error("Invalid value for calculation");
+  }
+
+  if (!isReverse) {
+    const percent = getPercent(num, tiers);
+    const result = num + num * percent;
+    return result < 10 ? 10 : Number(result.toFixed(2));
+  }
+
+  for (const tier of tiers) {
+    const original = num / (1 + tier.percent);
+    if (original >= tier.min && original <= tier.max) {
+      return Number(original.toFixed(2));
+    }
+  }
+  return num;
+}
+
+const controlTopup = {
   GetCountries: async (req, res) => {
     try {
       const dataCountries = await requestDing("GetCountries", "GET");
 
-      if (!dataCountries.success) {
-        return res.status(502).json({
-          success: false,
-          message: dataCountries.message || "Erro ao buscar países.",
-          errors: dataCountries.errors || null,
-        });
-      }
-
       return res.status(200).json({
         success: true,
-        ResultCode: dataCountries.ResultCode,
-        Items: dataCountries.Items || [],
+        ...dataCountries,
       });
     } catch (error) {
-      console.error("Erro GetCountries:", error);
+      console.error("[GetCountries]", error);
 
       return res.status(500).json({
         success: false,
-        message: error.message || "Erro interno ao buscar países.",
+        message: error?.message || "Error fetching countries.",
       });
     }
   },
 
-  // ============================================================
-  // BUSCAR OPERADORA
-  // ============================================================
   GetProviders: async (req, res) => {
     try {
-      let { accountNumber, countryIsos } = req.query;
+      let { AccountNumber } = req.query;
 
-      if (!countryIsos) {
+      if (!AccountNumber) {
         return res.status(400).json({
           success: false,
-          message: "Parâmetro countryIsos é obrigatório.",
+          message: "AccountNumber is required.",
         });
       }
 
-      if (!accountNumber) {
+      if (!AccountNumber) {
         return res.status(400).json({
           success: false,
-          message: "Parâmetro accountNumber é obrigatório.",
-        });
-      }
-
-      accountNumber = String(accountNumber).replace(/\D/g, "");
-
-      if (!accountNumber) {
-        return res.status(400).json({
-          success: false,
-          message: "Número de telefone inválido.",
+          message: "Invalid AccountNumber.",
         });
       }
 
       const dataProviders = await requestDing(
-        `GetProviders?accountNumber=${encodeURIComponent(
-          accountNumber,
-        )}&c=${encodeURIComponent(countryIsos)}`,
+        `GetProviders?accountNumber=${encodeURIComponent(AccountNumber)}`,
         "GET",
       );
 
-      if (!dataProviders.success) {
-        return res.status(502).json({
-          success: false,
-          message: dataProviders.message || "Erro ao buscar operadoras.",
-          errors: dataProviders.errors || null,
-        });
-      }
-
       return res.status(200).json({
         success: true,
-        ResultCode: dataProviders.ResultCode,
-        Items: dataProviders.Items || [],
+        ...dataProviders,
       });
     } catch (error) {
-      console.error("Erro GetProviders:", error);
+      console.error("[GetProviders]", error);
 
       return res.status(500).json({
         success: false,
-        message: error.message || "Erro interno ao buscar operadoras.",
+        message: error?.message || "Error fetching providers.",
       });
     }
   },
 
-  // ============================================================
-  // BUSCAR PRODUTOS
-  // ============================================================
   GetProducts: async (req, res) => {
     try {
-      let { accountNumber, providerCodes } = req.query;
+      let { AccountNumber, ProviderCodes } = req.query;
 
-      if (!accountNumber) {
+      if (!AccountNumber || !ProviderCodes) {
         return res.status(400).json({
           success: false,
-          message: "Parâmetro accountNumber é obrigatório.",
+          message: "AccountNumber and ProviderCodes are required.",
         });
       }
 
-      if (!providerCodes) {
+      if (!AccountNumber) {
         return res.status(400).json({
           success: false,
-          message: "Parâmetro providerCodes é obrigatório.",
-        });
-      }
-
-      accountNumber = String(accountNumber).replace(/\D/g, "");
-
-      if (!accountNumber) {
-        return res.status(400).json({
-          success: false,
-          message: "Número de telefone inválido.",
+          message: "Invalid AccountNumber.",
         });
       }
 
       const dataProducts = await requestDing(
         `GetProducts?accountNumber=${encodeURIComponent(
-          accountNumber,
-        )}&providerCodes=${encodeURIComponent(providerCodes)}`,
+          AccountNumber,
+        )}&providerCodes=${encodeURIComponent(ProviderCodes)}`,
         "GET",
       );
 
-      if (!dataProducts.success) {
-        return res.status(502).json({
+      if (!dataProducts.data || dataProducts.data?.ResultCode !== 1) {
+        return res.status(500).json({
           success: false,
-          message: dataProducts.message || "Erro ao buscar produtos.",
-          errors: dataProducts.errors || null,
+          message: "Failed to fetch products from Ding Connect.",
         });
+      }
+
+      const tiers_price_current_user = await getCurrentWallet(req);
+
+      if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No active price found for the selected wallet.",
+        });
+      }
+
+      let {
+        max_value,
+        min_value,
+        price_step,
+        end_percent,
+        fee_provider,
+        start_percent,
+      } = tiers_price_current_user[0] || {};
+
+      if (
+        min_value == null ||
+        max_value == null ||
+        price_step == null ||
+        end_percent == null ||
+        fee_provider == null ||
+        start_percent == null
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Top-up limit configuration is missing for this wallet.",
+        });
+      }
+
+      max_value = parseFloat(max_value);
+      min_value = parseFloat(min_value);
+      price_step = parseFloat(price_step);
+      end_percent = parseFloat(end_percent) / 100;
+      start_percent = parseFloat(start_percent) / 100;
+      fee_provider = parseFloat(fee_provider) / 100;
+
+      const products = Array.isArray(dataProducts.data.Items)
+        ? dataProducts.data.Items
+        : [];
+
+      const items = [];
+
+      for (const product of products) {
+        const skuCode = product?.SkuCode;
+        const ReceiveCurrencyIso = product?.Maximum?.ReceiveCurrencyIso;
+
+        if (!skuCode) {
+          continue;
+        }
+
+        const minimum = product?.Minimum?.SendValue;
+
+        const maximum = product?.Maximum?.SendValue;
+
+        if (minimum === maximum) {
+          items.push({
+            skuCode,
+            receiveCurrencyIso: ReceiveCurrencyIso,
+            sendValue: calculatePrice(
+              minimum,
+              false,
+              generatePriceTiers(
+                min_value,
+                max_value,
+                price_step,
+                start_percent,
+                end_percent,
+              ),
+            ),
+          });
+
+          continue;
+        }
+
+        if (maximum > minimum) {
+          const minValue = calculatePrice(
+            minimum,
+            false,
+            generatePriceTiers(
+              min_value,
+              max_value,
+              price_step,
+              start_percent,
+              end_percent,
+            ),
+          );
+
+          const maxValue = calculatePrice(
+            maximum,
+            false,
+            generatePriceTiers(
+              min_value,
+              max_value,
+              price_step,
+              start_percent,
+              end_percent,
+            ),
+          );
+
+          for (
+            let value = Math.ceil(minValue);
+            value <= Math.floor(maxValue);
+            value++
+          ) {
+            items.push({
+              skuCode,
+              receiveCurrencyIso: ReceiveCurrencyIso,
+              sendValue: value,
+            });
+          }
+        }
       }
 
       return res.status(200).json({
         success: true,
-        ResultCode: dataProducts.ResultCode,
-        Items: dataProducts.Items || [],
+        Items: items,
       });
     } catch (error) {
-      console.error("Erro GetProducts:", error);
+      console.error("[GetProducts]", error);
 
       return res.status(500).json({
         success: false,
-        message: error.message || "Erro interno ao buscar produtos.",
+        message: error?.message || "Error fetching products.",
       });
     }
   },
 
-  // ============================================================
-  // ENVIAR TOPUP
-  // ============================================================
+  // Controller method to handle sending top-up requests
   SendTopup: async (req, res) => {
     try {
-      let { skuCode, sendValue, accountNumber, distributorRef, validateOnly } =
-        req.body;
-
-      // Validação correta
-      if (!skuCode) {
+      if (!req.body) {
         return res.status(400).json({
           success: false,
-          message: "skuCode é obrigatório.",
+          message: "Request body is missing.",
         });
       }
 
-      if (sendValue == null || sendValue === "") {
-        return res.status(400).json({
+      const currentActorId = req.user?.id;
+
+      if (!currentActorId) {
+        return res.status(401).json({
           success: false,
-          message: "sendValue é obrigatório.",
+          message: "User not authenticated.",
         });
       }
 
-      if (!accountNumber) {
-        return res.status(400).json({
-          success: false,
-          message: "accountNumber é obrigatório.",
-        });
-      }
-
-      if (!distributorRef) {
-        return res.status(400).json({
-          success: false,
-          message: "distributorRef é obrigatório.",
-        });
-      }
-
-      // false pode ser válido
-      if (validateOnly == null) {
-        return res.status(400).json({
-          success: false,
-          message: "validateOnly é obrigatório.",
-        });
-      }
-
-      accountNumber = String(accountNumber).replace(/\D/g, "");
-
-      if (!accountNumber) {
-        return res.status(400).json({
-          success: false,
-          message: "Número de telefone inválido.",
-        });
-      }
-
-      const topupData = {
+      const {
         skuCode,
         sendValue,
+        sendCurrencyIso,
         accountNumber,
-        distributorRef,
-        validateOnly: Boolean(validateOnly),
-      };
+        validateOnly,
+        receiveCountryName,
+        operatorName,
+        receiveCurrencyIso,
+        distributor_ref,
+      } = req.body;
 
-      const createdTopup = await modelTopUp.createTopUp(
-        { userId: req.user.uuid },
-        topupData,
-      );
+      // ========================================================
+      // VALIDAR CAMPOS
+      // ========================================================
 
-      // const response = await requestDing("SendTransfer", "POST", topupData);
+      const requiredFields = [
+        "skuCode",
+        "sendValue",
+        "sendCurrencyIso",
+        "receiveCurrencyIso",
+        "accountNumber",
+        "operatorName",
+        "distributor_ref",
+      ];
 
-      // if (!response.success) {
-      //   return res.status(502).json({
-      //     success: false,
-      //     message: response.message || "Erro ao enviar recarga.",
-      //     errors: response.errors || null,
-      //   });
-      // }
+      for (const field of requiredFields) {
+        if (req.body[field] == null || req.body[field] === "") {
+          return res.status(400).json({
+            success: false,
+            message: `Required field missing: ${field}`,
+          });
+        }
+      }
 
-      return res.status(200).json({
-        success: true,
-        message: "Topup enviado com sucesso!",
-        // data: response.TransferRecord || null,
-        // response,
-        createdTopup,
-      });
-    } catch (error) {
-      console.error("Erro SendTransfer:", error);
+      // ========================================================
+      // WALLET
+      // ========================================================
 
-      return res.status(500).json({
-        success: false,
-        message: error.message || "Erro interno. Tente novamente!",
-      });
-    }
-  },
+      const tiers_price_current_user = await getCurrentWallet(req);
 
-  // ============================================================
-  // HISTÓRICO DE TOPUPS
-  // ============================================================
-  GetTopups: async (req, res) => {
-    const { startDate, endDate, emailUser, pageSize, lastCreatedAt } =
-      req.query;
+      if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No active price found for the selected wallet.",
+        });
+      }
 
-    if (!startDate || !emailUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Parâmetros inválidos! Informe startDate e emailUser.",
-      });
-    }
+      let {
+        max_value,
+        min_value,
+        price_step,
+        end_percent,
+        fee_provider,
+        start_percent,
+      } = tiers_price_current_user[0] || {};
 
-    const emailList = Array.isArray(emailUser) ? emailUser : [emailUser];
+      if (
+        min_value == null ||
+        max_value == null ||
+        price_step == null ||
+        end_percent == null ||
+        fee_provider == null ||
+        start_percent == null
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Top-up limit configuration is missing for this wallet.",
+        });
+      }
 
-    try {
-      const results = await Promise.all(
-        emailList.map((email) =>
-          modelTopUp.GetTopups({
-            startDate,
-            endDate,
-            email,
-            pageSize,
-            lastCreatedAt,
-          }),
+      max_value = parseFloat(max_value);
+      min_value = parseFloat(min_value);
+      price_step = parseFloat(price_step);
+      end_percent = parseFloat(end_percent) / 100;
+      start_percent = parseFloat(start_percent) / 100;
+      fee_provider = parseFloat(fee_provider) / 100;
+
+      // ========================================================
+      // VALOR
+      // ========================================================
+
+      if (sendValue < min_value || sendValue > max_value) {
+        return res.status(400).json({
+          success: false,
+          message: `The value must be between R$ ${min_value} and R$ ${max_value}.`,
+        });
+      }
+
+      // ========================================================
+      // ACCOUNT NUMBER
+      // ========================================================
+
+      if (!accountNumber) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid account number.",
+        });
+      }
+
+      const calculatedSendValue = calculatePrice(
+        sendValue,
+        true,
+        generatePriceTiers(
+          min_value,
+          max_value,
+          price_step,
+          start_percent,
+          end_percent,
         ),
       );
 
-      const allItems = results.flatMap((result) => result.items || []);
+      if (calculatedSendValue <= 0 || calculatedSendValue >= sendValue) {
+        return res.status(400).json({
+          success: false,
+          message: "Calculated top-up value is invalid.",
+        });
+      }
 
-      const lastVisible =
-        results.find((result) => result.lastVisible)?.lastVisible || null;
+      const fee = sendValue - calculatedSendValue;
 
-      return res.status(200).json({
+      if (fee < 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Calculated fee is invalid.",
+        });
+      }
+
+      // ========================================================
+      // DISTRIBUTOR REF
+      // ========================================================
+
+      // ========================================================
+      // DADOS DA RECARGA
+      // ========================================================
+      const dataTopup = {
+        actor_id: currentActorId,
+        sku_code: skuCode,
+        send_value: sendValue.toFixed(2),
+        send_value_net: calculatedSendValue.toFixed(2),
+        account_number: accountNumber,
+        distributor_ref,
+        send_currency: sendCurrencyIso,
+        transfer_id: null,
+        received_value: calculatedSendValue.toFixed(2),
+        received_currency: receiveCurrencyIso,
+        fee: fee.toFixed(2),
+        validate_only: Boolean(validateOnly),
+        fee_provider: (fee_provider > 0 ? fee_provider * fee : 0).toFixed(2),
+        error_code: null,
+        error_message: null,
+        raw_api_response: {
+          validateOnly: Boolean(validateOnly),
+          transactionType: "topup",
+          operatorName,
+          receiveCountryName,
+          sendValue: sendValue.toFixed(2),
+          calculatedSendValue: calculatedSendValue.toFixed(2),
+          fee: fee.toFixed(2),
+        },
+      };
+
+      // ========================================================
+      // CRIAR TOPUP OR VALIDATE ONLY
+      // ========================================================
+      const profile_type = req.user?.type;
+      if (!profile_type) {
+        return res.status(400).json({
+          success: false,
+          message: "Profile type is required.",
+          data: dataTopup,
+        });
+      }
+
+      const amountOfDing = await modelTopup.createTopup(
+        dataTopup,
+        profile_type,
+      );
+
+      if (
+        !amountOfDing.success ||
+        amountOfDing.data?.TransferRecord?.ProcessingState?.includes([
+          "Failed",
+          "Cancelled",
+        ])
+      ) {
+        return res.status(400).json({
+          success: false,
+          error: amountOfDing.data?.TransferRecord?.ProcessingState?.includes(
+            "Failed",
+          )
+            ? "Failed"
+            : amountOfDing.data?.TransferRecord?.ProcessingState?.includes(
+                  "Cancelled",
+                )
+              ? "Cancelled"
+              : null,
+        });
+      }
+      // ========================================================
+      // VALIDATE ONLY
+      // ========================================================
+
+      console.log("[ValidateOnly] amountOfDing:", amountOfDing);
+      if (Boolean(validateOnly)) {
+        return res.status(200).json({
+          success: true,
+          data: {
+            ...amountOfDing?.data?.TransferRecord?.Price,
+          },
+        });
+      }
+
+      // ========================================================
+      // RESPONSE
+      // ========================================================
+
+      return res.status(201).json({
         success: true,
-        items: allItems,
-        lastVisible,
+        data: {
+          distributor_ref,
+          sendValue: sendValue.toFixed(2),
+          calculatedSendValue: calculatedSendValue.toFixed(2),
+          fee: fee.toFixed(2),
+          fee_provider: (fee_provider > 0 ? fee_provider * fee : 0).toFixed(2),
+          send_value_net: calculatedSendValue.toFixed(2),
+          ...amountOfDing?.data,
+        },
       });
     } catch (error) {
-      console.error("Erro ao buscar topups:", error);
-
-      return res.status(500).json({
+      console.error("[SendTopup]", error);
+      return res.status(400).json({
         success: false,
-        message: "Erro interno ao buscar topups.",
+        message: error?.message || "Error processing the top-up.",
+      });
+    }
+  },
+
+  getTopupHistory: async (req, res) => {
+    try {
+      const { user } = req;
+      const history = await modelTopup.getTopupHistory(user.id);
+      if (!history?.success) {
+        return res.status(400).json({
+          success: false,
+          message:
+            history?.error?.message || "Error retrieving top-up history.",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        data: history?.data || [],
+      });
+    } catch (error) {
+      console.error("[GetTopupHistory]", error);
+      return res.status(400).json({
+        success: false,
+        message: error?.message || "Error retrieving top-up history.",
       });
     }
   },
 };
 
-export default controlTopUp;
+export default controlTopup;

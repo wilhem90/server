@@ -1,41 +1,30 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import userRoutes from "./src/routes/user.routes.js";
-import transactionRoutes from "./src/routes/transaction.routes.js";
-import betRoutes from "./src/routes/bet.routes.js";
-import walletRoutes from "./src/routes/wallet.routes.js";
-import topupRoutes from "./src/routes/topup.routes.js";
 import cors from "cors";
-// import morgan from "morgan";
-import companiesRoutes from "./src/routes/companies.routes.js";
+import morgan from "morgan";
+import profilRouter from "./src/routes/profil.routes.js";
+import companyRouter from "./src/routes/company.routes.js";
+import topupRouter from "./src/routes/topup.routes.js";
+import transferRouter from "./src/routes/transfer.routes.js";
+import walletRouter from "./src/routes/wallets.routes.js";
 const app = express();
-const port = process.env.PORT_SERVER;
-
 app.use(express.json());
+
 app.use(cors());
-// app.use(morgan("dev"));
-//Routes
-app.use("/api/users", userRoutes);
-app.use("/api/transactions", transactionRoutes);
-app.use("/api/bet", betRoutes);
-app.use("/api/wallet", walletRoutes);
-app.use("/api/companies", companiesRoutes);
-app.use("/api/topup", topupRoutes);
+app.use(morgan("dev"));
+app.use(express.urlencoded({ extended: true }));
 
-//Server start
-app.listen(port, () => {
-  console.log(`http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.use("/api/profiles", profilRouter);
+app.use("/api/companies", companyRouter);
+app.use("/api/topups", topupRouter);
+app.use("/api/transfers", transferRouter);
+app.use("/api/wallets", walletRouter);
+
+app.use((_, res) => {
+  res.status(404).json({ message: "Not Found" });
 });
-
-//Route not found
-app.use((req, res) => {
-  return res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-
-
-
