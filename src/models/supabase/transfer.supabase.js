@@ -84,12 +84,21 @@ const transferModel = {
   },
 
   getTransferById: async (transferId) => {
-    const { data, error } = await supabase
+    // Pode igual a id ou statement_id, dependendo do contexto
+    let { data, error } = await supabase
       .from("transfers")
       .select("*")
-      .eq("statement_id", transferId)
-      .limit(1)
+      .eq("id", transferId)
       .maybeSingle();
+
+    if (!error && !data) {
+      ({ data, error } = await supabase
+        .from("transfers")
+        .select("*")
+        .eq("statement_id", transferId)
+        .maybeSingle());
+    }
+
     if (error) {
       return {
         success: false,
