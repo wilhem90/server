@@ -140,12 +140,7 @@ const modelCompany = {
 
     return {
       success: true,
-      data: {
-        id: data?.id,
-        name: data?.client_name,
-        doc_id: data?.doc_id,
-        status: data?.status,
-      },
+      data,
     };
   },
 

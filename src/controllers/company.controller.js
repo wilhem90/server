@@ -161,10 +161,12 @@ const companyController = {
           .status(400)
           .json({ success: false, error: "Missing company ID" });
       }
-      if (type !== "company") {
+      if (
+        ["company", "admin", "superadmin", "employee"].includes(type) === false
+      ) {
         return res.status(400).json({
           success: false,
-          error: "User is not a company",
+          error: "User is not a company, admin, superadmin, or employee",
         });
       }
 
