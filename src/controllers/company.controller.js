@@ -216,10 +216,12 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
+      const cleanPhoneNumber = phone ? cleanPhone(phone) : null;
+      const cleanDocId = doc_id ? validateCPF(doc_id) : null;
       const client = await modelCompany.getClient({
         name,
-        doc_id,
-        phone,
+        doc_id: cleanDocId,
+        phone: cleanPhoneNumber,
       });
       if (!client.success || !client.data) {
         return res.status(400).json({ success: false, error: client.error });
