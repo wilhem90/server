@@ -88,8 +88,8 @@ const transferModel = {
       .from("transfers")
       .select("*")
       .eq("statement_id", transferId)
-      .limit(1);
-
+      .limit(1)
+      .maybeSingle();
     if (error) {
       return {
         success: false,
