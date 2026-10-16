@@ -115,7 +115,28 @@ const modelCompany = {
   },
 
   // get Client by ID or name
+  getBeneficiary: async ({ account_number }) => {
+    const { data, error } = await supabase
+      .from("transfers")
+      .select("*")
+      .eq("account_number", account_number)
+      .maybeSingle();
 
+    if (error) {
+      console.error("Error fetching beneficiary:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return {
+      success: true,
+      data,
+    };
+  },
+
+  // Get Client by ID or name
   getClient: async ({ name, doc_id, phone }) => {
     let query = supabase.from("clients").select("*");
     if (name) {

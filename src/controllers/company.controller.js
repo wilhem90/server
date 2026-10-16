@@ -231,6 +231,38 @@ const companyController = {
     }
   },
 
+  getBeneficiary: async (req, res) => {
+    try {
+      const { account_number } = req.query;
+
+      if (!account_number) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing query parameters" });
+      }
+
+      const beneficiary = await modelCompany.getBeneficiary({
+        account_number,
+      });
+      if (!beneficiary.success || !beneficiary.data) {
+        return res
+          .status(400)
+          .json({ success: false, error: beneficiary.error });
+      }
+      res.json({
+        success: true,
+        data: {
+          beneficiary_name: beneficiary.data.beneficiary_name,
+          account_number: beneficiary.data.account_number,
+          operator_name: beneficiary.data.operator_name,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching beneficiary:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
   //   Get Settings App
   getSettingsApp: async (req, res) => {
     try {

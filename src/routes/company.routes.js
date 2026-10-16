@@ -30,6 +30,11 @@ router.get(
   middlewareAuthProfil.validateAuth,
   companyController.getClient,
 );
+router.get(
+  "/get-beneficiary",
+  middlewareAuthProfil.validateAuth,
+  companyController.getBeneficiary,
+);
 
 router.get(
   "/settings-app",
