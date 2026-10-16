@@ -21,21 +21,6 @@ const modelTopup = {
       };
     }
 
-    // p_profile_id UUID,
-    // p_type public.profile_type,
-    // p_sku_code TEXT,
-    // p_send_value NUMERIC,
-    // p_account_number TEXT,
-    // p_send_currency public.currencies,
-    // p_transfer_id TEXT,
-    // p_received_value NUMERIC,
-    // p_distributor_ref UUID,
-    // p_received_currency public.currencies,
-    // p_fee NUMERIC,
-    // p_fee_provider NUMERIC,
-    // p_error_code TEXT,
-    // p_error_message TEXT,
-    // p_raw_api_response JSONB
     // 1. Criar registro e debitar a carteira.
     const { data, error } = await supabase.rpc("create_topup", {
       p_profile_id: dataTopup.actor_id,
@@ -81,6 +66,21 @@ const modelTopup = {
     });
 
     return { success: true, data: topup, responseDing };
+  },
+
+  getTopupById: async (statement_id) => {
+    const { data, error } = await supabase
+      .from("topups")
+      .select("*")
+      .eq("statement_id", statement_id || null)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return { success: false, error };
+    return {
+      success: true,
+      data,
+    };
   },
 
   getTopupHistory: async (profile_id) => {

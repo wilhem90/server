@@ -506,7 +506,6 @@ const controlTopup = {
       // VALIDATE ONLY
       // ========================================================
 
-      console.log("[ValidateOnly] amountOfDing:", amountOfDing);
       if (Boolean(validateOnly)) {
         return res.status(200).json({
           success: true,
@@ -537,6 +536,29 @@ const controlTopup = {
       return res.status(400).json({
         success: false,
         message: error?.message || "Error processing the top-up.",
+      });
+    }
+  },
+
+  getTopupById: async (req, res) => {
+    try {
+      const { statement_id } = req.params;
+      const topup = await modelTopup.getTopupById(statement_id);
+      if (!topup?.success) {
+        return res.status(400).json({
+          success: false,
+          message: topup?.error?.message || "Error retrieving top-up.",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        data: topup?.data || null,
+      });
+    } catch (error) {
+      console.error("[GetTopupById]", error);
+      return res.status(400).json({
+        success: false,
+        message: error?.message || "Error retrieving top-up.",
       });
     }
   },

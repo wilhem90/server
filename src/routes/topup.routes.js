@@ -28,6 +28,12 @@ router.post(
 );
 
 router.get(
+  "/get-topup/:statement_id",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.getTopupById,
+);
+
+router.get(
   "/history",
   middlewareAuthProfil.validateAuth,
   controlTopup.getTopupHistory,
