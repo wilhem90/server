@@ -126,16 +126,6 @@ const controllerTransferMoney = {
     start_percent = parseFloat(start_percent) / 100;
     fee_provider = parseFloat(fee_provider) / 100;
 
-    // console.log(
-    //   max_value,
-    //   min_value,
-    //   price_step,
-    //   end_percent,
-    //   fee_provider,
-    //   start_percent,
-    //   need_wallet,
-    // );
-
     // ========================================================
     // VALOR
     // ========================================================
@@ -321,6 +311,39 @@ const controllerTransferMoney = {
       });
     } catch (error) {
       console.error("Erro ao buscar transferências:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  },
+
+  getTransferById: async (req, res) => {
+    try {
+      const transferId = req.params.id;
+
+      if (!transferId) {
+        return res.status(400).json({
+          success: false,
+          message: "ID da transferência é obrigatório",
+        });
+      }
+
+      const requestTransfer = await transferModel.getTransferById(transferId);
+
+      if (!requestTransfer.success) {
+        return res.status(404).json({
+          success: false,
+          message: requestTransfer.message || "Transferência não encontrada",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        transfer: requestTransfer.data,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar transferência:", error);
       return res.status(500).json({
         success: false,
         message: error.message,

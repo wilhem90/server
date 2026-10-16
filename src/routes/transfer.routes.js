@@ -9,11 +9,11 @@ router.post(
   controllerTransferMoney.createTransfer,
 );
 
-// router.get(
-//   "/get-beneficiary/:accountNumber",
-//   middlewareAuthProfil.validateAuth,
-//   controllerTransferMoney.getBeneficiary,
-// );
+router.get(
+  "/get-transfer/:id",
+  middlewareAuthProfil.validateAuth,
+  controllerTransferMoney.getTransferById,
+);
 
 router.get(
   "/get-transfers",

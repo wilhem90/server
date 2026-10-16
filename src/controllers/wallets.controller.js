@@ -182,13 +182,14 @@ const controlWallets = {
 
   getStatements: async (req, res) => {
     try {
-      const {user} = req;
+      const { user } = req;
+      const { limit = 50, offset = 0 } = req.query;
 
       const statements = await walletSupabase.getWalletTransactionBalances(
         user.wallet_id,
         null,
-        50,
-        0,
+        limit,
+        offset,
       );
       if (!statements?.success) {
         return res.status(400).json({

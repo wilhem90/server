@@ -59,7 +59,7 @@ const transferModel = {
     }
 
     console.log({ start_date, end_date });
-    
+
     const { data, error } = await supabase.rpc("get_transfers", {
       p_wallet_id: walletId,
       p_employee_id: employeeId,
@@ -69,6 +69,25 @@ const transferModel = {
       p_start_date: new Date(start_date),
       p_end_date: new Date(end_date),
     });
+
+    if (error) {
+      return {
+        success: false,
+        error,
+      };
+    }
+
+    return {
+      success: true,
+      data,
+    };
+  },
+
+  getTransferById: async (transferId) => {
+    const { data, error } = await supabase
+      .from("transfers")
+      .select("*")
+      .eq("statement_id", transferId);
 
     if (error) {
       return {
