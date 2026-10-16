@@ -120,6 +120,7 @@ const modelCompany = {
       .from("transfers")
       .select("*")
       .eq("account_number", account_number)
+      .limit(1)
       .maybeSingle();
 
     if (error) {
