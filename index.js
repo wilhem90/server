@@ -15,7 +15,7 @@ app.use(cors());
 // app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT_SERVER || 3000;
 app.use("/api/profiles", profilRouter);
 app.use("/api/companies", companyRouter);
 app.use("/api/topups", topupRouter);
