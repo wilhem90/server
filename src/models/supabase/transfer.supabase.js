@@ -87,7 +87,8 @@ const transferModel = {
     const { data, error } = await supabase
       .from("transfers")
       .select("*")
-      .eq("statement_id", transferId);
+      .eq("statement_id", transferId)
+      .limit(1);
 
     if (error) {
       return {
