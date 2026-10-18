@@ -81,7 +81,6 @@ const controllerTransferMoney = {
       account_number,
       operator_name,
       sendValue,
-      distributor_ref,
       validateOnly = true,
     } = req.body;
 
@@ -191,7 +190,6 @@ const controllerTransferMoney = {
       const fields = [
         "beneficiary_name",
         "account_number",
-        "distributor_ref",
         "operator_name",
       ];
 
@@ -263,12 +261,10 @@ const controllerTransferMoney = {
         exchangeRate: dataToSend.exchangeRate,
         receivedValue: dataToSend.estimated,
         receivedCurrency: dataToSend.receivedCurrency,
-        distributorRef: distributor_ref,
         neededWallet: need_wallet,
       });
 
       if (!transfer.success) {
-        console.log(transfer);
         return res.status(500).json({
           success: false,
           message: transfer.error?.message || "Falha ao criar a transferência",

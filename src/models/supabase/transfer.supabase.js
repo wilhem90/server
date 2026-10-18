@@ -5,7 +5,6 @@ const transferModel = {
     const { data, error } = await supabase.rpc("create_intent_transaction", {
       p_wallet_id: dataTransfer.walletId,
       p_created_by: dataTransfer.actorId,
-      p_distributor_ref: dataTransfer.distributorRef,
       p_client_id: dataTransfer.client_id,
       p_beneficiary_name: dataTransfer.beneficiary_name?.toLowerCase(),
       p_account_number: dataTransfer.account_number,
