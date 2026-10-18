@@ -95,7 +95,7 @@ const modelCompany = {
         client_name: clientData.client_name,
         phone: clientData.phone,
         doc_id: clientData.doc_id,
-        company_id: clientData.company_id,
+        inserted_by: clientData.profile_id,
         status: "active",
       })
       .select();

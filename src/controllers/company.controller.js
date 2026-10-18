@@ -188,7 +188,7 @@ const companyController = {
         client_name,
         phone: cleanPhone(phone),
         doc_id: validDocId,
-        company_id: req.user.id,
+        profile_id: req.user.id,
       });
       if (!client.success) {
         return res.status(400).json({

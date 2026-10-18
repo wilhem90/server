@@ -1,5 +1,6 @@
 import handleExchangeRate from "../apis/exchangeRate.js";
 import modelCompany from "../models/supabase/company.supabase.js";
+import supabase from "../models/supabase/conexion.js";
 import transferModel from "../models/supabase/transfer.supabase.js";
 import wallet_price_tiers from "../utils/generatePriceTiers.js";
 
@@ -70,6 +71,7 @@ function calculatePrice(value, isReverse = false, tiers = []) {
 const controllerTransferMoney = {
   // Cria uma transferência de dinheiro
   createTransfer: async (req, res) => {
+    console.log(req.body);
     const {
       client_id,
       beneficiary_name,
@@ -86,7 +88,6 @@ const controllerTransferMoney = {
     // ========================================================
 
     const tiers_price_current_user = await getCurrentWallet(req);
-    console.log(tiers_price_current_user);
 
     if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
       return res.status(400).json({
@@ -185,7 +186,6 @@ const controllerTransferMoney = {
 
       // Aqui você pode adicionar a lógica para criar a transferência de dinheiro
       const fields = [
-        "client_id",
         "beneficiary_name",
         "account_number",
         "distributor_ref",
