@@ -30,7 +30,7 @@ const transferModel = {
 
     return {
       success: true,
-      data,
+      data: { id: data },
     };
   },
 

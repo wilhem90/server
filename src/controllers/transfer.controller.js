@@ -277,7 +277,7 @@ const controllerTransferMoney = {
 
       return res.status(200).json({
         success: true,
-        transfer: transfer.data,
+        data: { id: transfer.data?.id },
       });
     } catch (error) {
       console.log(error);
