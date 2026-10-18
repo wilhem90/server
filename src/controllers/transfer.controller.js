@@ -74,6 +74,9 @@ const controllerTransferMoney = {
     console.log(req.body);
     const {
       client_id,
+      doc_id,
+      phone_client,
+      client_name,
       beneficiary_name,
       account_number,
       operator_name,
@@ -199,12 +202,56 @@ const controllerTransferMoney = {
         });
       }
 
+      let clientId = "";
+
+      if (!client_id) {
+        const { data: existingClientData } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("doc_id", doc_id)
+          .maybeSingle();
+
+        if (existingClientData?.id) {
+          await supabase
+            .from("clients")
+            .update({
+              client_name,
+              phone: phone_client,
+              status: "active",
+            })
+            .eq("doc_id", doc_id);
+          clientId = existingClientData?.id;
+        }
+      }
+
+      if (!clientId && !client_id) {
+        const { data: newClientData } = await supabase
+          .from("clients")
+          .insert({
+            client_name,
+            phone: phone_client,
+            doc_id,
+            inserted_by: req.user.id,
+            status: "active",
+          })
+          .select()
+          .single();
+
+        if (newClientData) {
+          clientId = newClientData.id;
+        }
+      }
+
       // Aqui você pode adicionar a lógica para criar a transferência de dinheiro
       const actorId = req.user.id;
       const transfer = await transferModel.createTransfer({
         walletId: user?.wallet_id,
+        profileId: req.user.id,
         actorId,
-        client_id,
+        doc_id,
+        client_name,
+        client_id: clientId,
+        phone: phone_client,
         beneficiary_name,
         account_number,
         operator_name,

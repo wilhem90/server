@@ -2,30 +2,6 @@ import supabase from "./conexion.js";
 
 const transferModel = {
   createTransfer: async (dataTransfer) => {
-
-    if (!dataTransfer.client_id) {
-      // upsert new client if client_id is not provided
-      const { data: newClientData, error: newClientError } = await supabase
-        .from("clients")
-        .upsert({
-          client_name: dataTransfer.client_name,
-          phone: dataTransfer.phone,
-          doc_id: dataTransfer.doc_id,
-          wallet_id: dataTransfer.wallet_id,
-          status: "active",
-        })
-        .select()
-        .single();
-
-      if (newClientError) {
-        return {
-          success: false,
-          error: newClientError,
-        };
-      }
-
-      dataTransfer.client_id = newClientData.id;
-    }
     const { data, error } = await supabase.rpc("create_intent_transaction", {
       p_wallet_id: dataTransfer.walletId,
       p_created_by: dataTransfer.actorId,
