@@ -12,7 +12,6 @@ const profilModel = {
       const { data, error } = await supabase.rpc("get_profile_by_username", {
         p_username: normalizedUsername,
       });
-
       if (error) {
         console.error("[getProfileByUsername] Supabase error:", error);
 

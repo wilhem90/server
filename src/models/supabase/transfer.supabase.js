@@ -2,6 +2,8 @@ import supabase from "./conexion.js";
 
 const transferModel = {
   createTransfer: async (dataTransfer) => {
+    console.log(dataTransfer);
+
     const { data, error } = await supabase.rpc("create_intent_transaction", {
       p_wallet_id: dataTransfer.walletId,
       p_created_by: dataTransfer.actorId,

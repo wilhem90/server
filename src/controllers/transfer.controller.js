@@ -105,7 +105,6 @@ const controllerTransferMoney = {
       end_percent,
       fee_provider,
       start_percent,
-      need_wallet,
     } = tiers_price_current_user[0] || {};
 
     if (
@@ -187,11 +186,7 @@ const controllerTransferMoney = {
       }
 
       // Aqui você pode adicionar a lógica para criar a transferência de dinheiro
-      const fields = [
-        "beneficiary_name",
-        "account_number",
-        "operator_name",
-      ];
+      const fields = ["beneficiary_name", "account_number", "operator_name"];
 
       if (fields.some((field) => !req.body[field])) {
         return res.status(400).json({
@@ -261,7 +256,7 @@ const controllerTransferMoney = {
         exchangeRate: dataToSend.exchangeRate,
         receivedValue: dataToSend.estimated,
         receivedCurrency: dataToSend.receivedCurrency,
-        neededWallet: need_wallet,
+        neededWallet: req.user.need_wallet,
       });
 
       if (!transfer.success) {
