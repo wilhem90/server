@@ -69,212 +69,521 @@ function calculatePrice(value, isReverse = false, tiers = []) {
 }
 
 const controllerTransferMoney = {
-  // Cria uma transferência de dinheiro
   createTransfer: async (req, res) => {
-    console.log(req.body);
-    const {
-      client_id,
-      doc_id,
-      phone_client,
-      client_name,
-      beneficiary_name,
-      account_number,
-      operator_name,
-      sendValue,
-      validateOnly = true,
-    } = req.body;
-
-    const { user } = req;
-    // ========================================================
-    // WALLET
-    // ========================================================
-
-    const tiers_price_current_user = await getCurrentWallet(req);
-
-    if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No active price found for the selected wallet.",
-      });
-    }
-
-    let {
-      max_value,
-      min_value,
-      price_step,
-      end_percent,
-      fee_provider,
-      start_percent,
-    } = tiers_price_current_user[0] || {};
-
-    if (
-      min_value == null ||
-      max_value == null ||
-      price_step == null ||
-      end_percent == null ||
-      fee_provider == null ||
-      start_percent == null
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Top-up limit configuration is missing for this wallet.",
-      });
-    }
-
-    max_value = parseFloat(max_value);
-    min_value = parseFloat(min_value);
-    price_step = parseFloat(price_step);
-    end_percent = parseFloat(end_percent) / 100;
-    start_percent = parseFloat(start_percent) / 100;
-    fee_provider = parseFloat(fee_provider) / 100;
-
-    // ========================================================
-    // VALOR
-    // ========================================================
-
-    if (sendValue < min_value || sendValue > max_value) {
-      return res.status(400).json({
-        success: false,
-        message: `The value must be between R$ ${min_value} and R$ ${max_value}.`,
-      });
-    }
-
-    let { data: exchangeRateData } = await modelCompany.configApp({
-      name: "exchange_rate",
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    if (!exchangeRateData?.value) {
-      await handleExchangeRate();
-      const { data: newExchangeRateData } = await modelCompany.configApp({
-        name: "exchange_rate",
-        date: new Date().toISOString().split("T")[0],
-      });
-      exchangeRateData = newExchangeRateData;
-    }
-
     try {
+      const {
+        client_id,
+        doc_id,
+        phone_client,
+        client_name,
+        beneficiary_name,
+        account_number,
+        operator_name,
+        sendValue: rawSendValue,
+      } = req.body;
+
+      const { user } = req;
+
+      // ========================================================
+      // 1. VALIDAR AUTENTICAÇÃO E DADOS BÁSICOS
+      // ========================================================
+
+      if (!user?.id || !user?.wallet_id) {
+        return res.status(401).json({
+          success: false,
+          message: "User or wallet not authenticated.",
+        });
+      }
+
+      const rawValidateOnly = req.body.validateOnly;
+      let validateOnly = true;
+
+      if (rawValidateOnly !== undefined) {
+        if (rawValidateOnly === true || rawValidateOnly === "true") {
+          validateOnly = true;
+        } else if (rawValidateOnly === false || rawValidateOnly === "false") {
+          validateOnly = false;
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: "validateOnly must be a boolean.",
+          });
+        }
+      }
+
+      if (
+        rawSendValue === null ||
+        rawSendValue === undefined ||
+        String(rawSendValue).trim() === ""
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Transfer amount is required.",
+        });
+      }
+
+      const amount = Number(rawSendValue);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid transfer amount.",
+        });
+      }
+
+      // ========================================================
+      // 2. OBTER A CONFIGURAÇÃO DE PREÇOS DA CARTEIRA
+      // ========================================================
+
+      const tiersPriceCurrentUser = await getCurrentWallet(req);
+
+      if (!Array.isArray(tiersPriceCurrentUser) || !tiersPriceCurrentUser[0]) {
+        return res.status(400).json({
+          success: false,
+          message: "No active price found for the selected wallet.",
+        });
+      }
+
+      let {
+        max_value,
+        min_value,
+        price_step,
+        start_percent,
+        end_percent,
+        fee_provider,
+      } = tiersPriceCurrentUser[0];
+
+      const pricingValues = [
+        max_value,
+        min_value,
+        price_step,
+        start_percent,
+        end_percent,
+        fee_provider,
+      ];
+
+      if (
+        pricingValues.some(
+          (value) => value === null || value === undefined || value === "",
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet pricing configuration is incomplete.",
+        });
+      }
+
+      max_value = Number(max_value);
+      min_value = Number(min_value);
+      price_step = Number(price_step);
+
+      const startPercent = Number(start_percent) / 100;
+      const endPercent = Number(end_percent) / 100;
+      const providerPercent = Number(fee_provider) / 100;
+
+      if (
+        !Number.isFinite(max_value) ||
+        !Number.isFinite(min_value) ||
+        !Number.isFinite(price_step) ||
+        !Number.isFinite(startPercent) ||
+        !Number.isFinite(endPercent) ||
+        !Number.isFinite(providerPercent) ||
+        min_value <= 0 ||
+        max_value < min_value ||
+        price_step <= 0 ||
+        startPercent < 0 ||
+        endPercent < 0 ||
+        providerPercent < 0 ||
+        providerPercent > 1
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid wallet pricing configuration.",
+        });
+      }
+
+      if (amount < min_value || amount > max_value) {
+        return res.status(400).json({
+          success: false,
+          message: `The value must be between R$ ${min_value} and R$ ${max_value}.`,
+        });
+      }
+
+      // ========================================================
+      // 3. OBTER A TAXA DE CÂMBIO
+      // ========================================================
+
+      const today = new Date().toISOString().split("T")[0];
+
+      let { data: exchangeRateData, error: exchangeRateError } =
+        await modelCompany.configApp({
+          name: "exchange_rate",
+          date: today,
+        });
+
+      if (exchangeRateError) {
+        console.error("Error fetching exchange rate:", exchangeRateError);
+
+        return res.status(500).json({
+          success: false,
+          message: "Unable to retrieve the exchange rate.",
+        });
+      }
+
+      let exchangeRate = Number(exchangeRateData?.value);
+
+      if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+        await handleExchangeRate();
+
+        const result = await modelCompany.configApp({
+          name: "exchange_rate",
+          date: today,
+        });
+
+        if (result.error) {
+          console.error("Error refreshing exchange rate:", result.error);
+
+          return res.status(500).json({
+            success: false,
+            message: "Unable to refresh the exchange rate.",
+          });
+        }
+
+        exchangeRateData = result.data;
+        exchangeRate = Number(exchangeRateData?.value);
+      }
+
+      if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+        return res.status(503).json({
+          success: false,
+          message: "A valid exchange rate is not available.",
+        });
+      }
+
+      // ========================================================
+      // 4. CALCULAR TAXAS E VALOR RECEBIDO
+      // ========================================================
+
+      const roundMoney = (value) => Number(Number(value).toFixed(2));
+
       const tiers = generatePriceTiers(
         min_value,
         max_value,
         price_step,
-        start_percent,
-        end_percent,
+        startPercent,
+        endPercent,
       );
-      const fee = (
-        calculatePrice(sendValue, false, tiers) - parseFloat(sendValue)
-      ).toFixed(2);
-      const estimated = (parseFloat(sendValue) - fee).toFixed(2);
+
+      const calculatedPrice = Number(calculatePrice(amount, false, tiers));
+
+      if (!Number.isFinite(calculatedPrice) || calculatedPrice < amount) {
+        return res.status(500).json({
+          success: false,
+          message: "Unable to calculate the transfer fee.",
+        });
+      }
+
+      const feeAmount = roundMoney(calculatedPrice - amount);
+
+      // Parte da taxa destinada ao provedor.
+      const providerFeeAmount = roundMoney(feeAmount * providerPercent);
+
+      // Parte restante da taxa destinada à empresa.
+      const companyFeeAmount = roundMoney(feeAmount - providerFeeAmount);
+
+      const sendValueWithTax = roundMoney(amount - feeAmount);
+
+      if (sendValueWithTax <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "The transfer amount must exceed the fee.",
+        });
+      }
+
+      const receivedValue = roundMoney(sendValueWithTax * exchangeRate);
 
       const dataToSend = {
-        sendValue,
-        sendCurrency: user?.wallet_currency,
-        fee,
-        fee_company: (fee - fee_provider * fee).toFixed(2),
-        fee_provider: (fee_provider * fee).toFixed(2),
-        sendValueWithTax: (sendValue - fee).toFixed(2),
-        estimated: (estimated * exchangeRateData?.value ?? 1).toFixed(2),
+        sendValue: amount,
+        sendCurrency: user.wallet_currency ?? "BRL",
+        fee: feeAmount.toFixed(2),
+        fee_company: companyFeeAmount.toFixed(2),
+        fee_provider: providerFeeAmount.toFixed(2),
+        sendValueWithTax: sendValueWithTax.toFixed(2),
+        estimated: receivedValue.toFixed(2),
         receivedCurrency: "HTG",
-        exchangeRate: exchangeRateData?.value ?? 1,
+        exchangeRate,
       };
+
+      // ========================================================
+      // 5. MODO DE VALIDAÇÃO: NÃO GRAVAR NADA
+      // ========================================================
 
       if (validateOnly) {
         return res.status(200).json({
           success: true,
-          data: { ...dataToSend },
+          data: dataToSend,
         });
       }
 
-      // Aqui você pode adicionar a lógica para criar a transferência de dinheiro
-      const fields = ["beneficiary_name", "account_number", "operator_name"];
+      // ========================================================
+      // 6. VALIDAR DADOS DA TRANSFERÊNCIA
+      // ========================================================
 
-      if (fields.some((field) => !req.body[field])) {
-        return res.status(400).json({
-          success: false,
-          message: `Required fields missing: ${fields.filter((field) => !req.body[field]).join(", ")}`,
-        });
-      }
-
-      let clientId = "";
-
-      if (!client_id) {
-        const { data: existingClientData } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("doc_id", doc_id)
-          .maybeSingle();
-
-        if (existingClientData?.id) {
-          await supabase
-            .from("clients")
-            .update({
-              client_name,
-              phone: phone_client,
-              status: "active",
-            })
-            .eq("doc_id", doc_id);
-          clientId = existingClientData?.id;
-        }
-      }
-
-      if (!clientId && !client_id) {
-        const { data: newClientData } = await supabase
-          .from("clients")
-          .insert({
-            client_name,
-            phone: phone_client,
-            doc_id,
-            inserted_by: req.user.id,
-            status: "active",
-          })
-          .select()
-          .single();
-
-        if (newClientData) {
-          clientId = newClientData.id;
-        }
-      }
-
-      // Aqui você pode adicionar a lógica para criar a transferência de dinheiro
-      const actorId = req.user.id;
-      const transfer = await transferModel.createTransfer({
-        walletId: user?.wallet_id,
-        profileId: req.user.id,
-        actorId,
-        doc_id,
-        client_name,
-        client_id: clientId,
-        phone: phone_client,
+      const requiredFields = {
         beneficiary_name,
         account_number,
         operator_name,
-        sendValue,
-        sendCurrency: user?.wallet_currency ?? "BRL",
+      };
+
+      const missingFields = Object.entries(requiredFields)
+        .filter(
+          ([, value]) =>
+            value === undefined ||
+            value === null ||
+            String(value).trim() === "",
+        )
+        .map(([field]) => field);
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Required fields missing: ${missingFields.join(", ")}`,
+        });
+      }
+
+      const normalizedOperator = String(operator_name).trim().toLowerCase();
+
+      if (!["moncash", "natcash"].includes(normalizedOperator)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid transfer operator.",
+        });
+      }
+
+      // ========================================================
+      // 7. ENCONTRAR OU ATUALIZAR O CLIENTE
+      // ========================================================
+
+      let clientId = client_id ?? null;
+
+      if (clientId !== null && clientId !== "") {
+        // O ID informado deve corresponder a um cliente existente.
+        const { data: existingById, error: findByIdError } = await supabase
+          .from("clients")
+          .select("id, doc_id")
+          .eq("id", clientId)
+          .maybeSingle();
+
+        if (findByIdError) {
+          console.error("Error finding client by ID:", findByIdError);
+
+          return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve the selected client.",
+          });
+        }
+
+        if (!existingById) {
+          return res.status(400).json({
+            success: false,
+            message: "The selected client does not exist.",
+          });
+        }
+
+        // Evita associar um ID de cliente a outro documento.
+        if (
+          doc_id &&
+          String(existingById.doc_id).trim().toLowerCase() !==
+            String(doc_id).trim().toLowerCase()
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: "The client ID and document do not match.",
+          });
+        }
+
+        clientId = existingById.id;
+      } else {
+        const normalizedDocId = typeof doc_id === "string" ? doc_id.trim() : "";
+
+        const normalizedClientName =
+          typeof client_name === "string" ? client_name.trim() : "";
+
+        if (!normalizedDocId || !normalizedClientName) {
+          return res.status(400).json({
+            success: false,
+            message: "Client document and name are required.",
+          });
+        }
+
+        const { data: existingClient, error: findClientError } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("doc_id", normalizedDocId)
+          .maybeSingle();
+
+        if (findClientError) {
+          console.error("Error finding client:", findClientError);
+
+          return res.status(500).json({
+            success: false,
+            message: "Unable to retrieve client information.",
+          });
+        }
+
+        if (existingClient) {
+          // Atualiza somente os dados do cliente.
+          // Preserva inserted_by e created_at.
+          const { data: updatedClient, error: updateClientError } =
+            await supabase
+              .from("clients")
+              .update({
+                client_name: normalizedClientName,
+                phone: phone_client ?? null,
+                status: "active",
+              })
+              .eq("id", existingClient.id)
+              .select("id")
+              .single();
+
+          if (updateClientError) {
+            console.error("Error updating client:", updateClientError);
+
+            return res.status(500).json({
+              success: false,
+              message: "Unable to update the client.",
+            });
+          }
+
+          clientId = updatedClient.id;
+        } else {
+          const { data: newClient, error: insertClientError } = await supabase
+            .from("clients")
+            .insert({
+              client_name: normalizedClientName,
+              phone: phone_client ?? null,
+              doc_id: normalizedDocId,
+              inserted_by: user.id,
+              status: "active",
+            })
+            .select("id")
+            .single();
+
+          if (insertClientError) {
+            // Outro pedido pode ter cadastrado o mesmo documento
+            // entre a consulta e a inserção.
+            if (insertClientError.code === "23505") {
+              const { data: concurrentClient, error: retryError } =
+                await supabase
+                  .from("clients")
+                  .select("id")
+                  .eq("doc_id", normalizedDocId)
+                  .maybeSingle();
+
+              if (retryError || !concurrentClient) {
+                console.error(
+                  "Error resolving concurrent client insert:",
+                  retryError || insertClientError,
+                );
+
+                return res.status(409).json({
+                  success: false,
+                  message: "Client registration conflict. Please retry.",
+                });
+              }
+
+              const { data: updatedClient, error: retryUpdateError } =
+                await supabase
+                  .from("clients")
+                  .update({
+                    client_name: normalizedClientName,
+                    phone: phone_client ?? null,
+                    status: "active",
+                  })
+                  .eq("id", concurrentClient.id)
+                  .select("id")
+                  .single();
+
+              if (retryUpdateError) {
+                console.error(
+                  "Error updating concurrent client:",
+                  retryUpdateError,
+                );
+
+                return res.status(500).json({
+                  success: false,
+                  message: "Unable to update the existing client.",
+                });
+              }
+
+              clientId = updatedClient.id;
+            } else {
+              console.error("Error inserting client:", insertClientError);
+
+              return res.status(500).json({
+                success: false,
+                message: "Unable to register the client.",
+              });
+            }
+          } else {
+            clientId = newClient.id;
+          }
+        }
+      }
+
+      // ========================================================
+      // 8. CRIAR A TRANSFERÊNCIA
+      // ========================================================
+
+      const transfer = await transferModel.createTransfer({
+        walletId: user.wallet_id,
+        profileId: user.id,
+        actorId: user.id,
+        doc_id: doc_id ?? null,
+        client_name: client_name ?? null,
+        client_id: clientId,
+        phone: phone_client ?? null,
+        beneficiary_name: String(beneficiary_name).trim(),
+        account_number: String(account_number).trim(),
+        operator_name: normalizedOperator,
+        sendValue: amount,
+        sendCurrency: user.wallet_currency ?? "BRL",
         fee: dataToSend.fee,
         feeCommission: dataToSend.fee_company,
         feeProvider: dataToSend.fee_provider,
         exchangeRate: dataToSend.exchangeRate,
         receivedValue: dataToSend.estimated,
         receivedCurrency: dataToSend.receivedCurrency,
-        neededWallet: req.user.need_wallet,
+        neededWallet: user.need_wallet,
       });
 
-      if (!transfer.success) {
+      if (!transfer?.success || !transfer?.data?.id) {
+        console.error("Error creating transfer:", transfer?.error);
+
         return res.status(500).json({
           success: false,
-          message: transfer.error?.message || "Falha ao criar a transferência",
+          message: transfer?.error?.message || "Failed to create the transfer.",
         });
       }
 
-      return res.status(200).json({
+      // ========================================================
+      // 9. RESPOSTA
+      // ========================================================
+
+      return res.status(201).json({
         success: true,
-        data: { id: transfer.data?.id },
+        data: {
+          id: transfer.data.id,
+          client_id: clientId,
+          ...dataToSend,
+        },
       });
     } catch (error) {
-      console.log(error);
+      console.error("createTransfer error:", error);
+
       return res.status(500).json({
         success: false,
-        message: error.message,
+        message: "An unexpected error occurred while creating the transfer.",
       });
     }
   },
