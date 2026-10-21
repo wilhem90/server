@@ -68,19 +68,17 @@ const modelTopup = {
     return { success: true, data: topup, responseDing };
   },
 
-  getTopupById: async (statement_id) => {
+  getTopupById: async (id) => {
     const { data, error } = await supabase
       .from("topups")
       .select("*")
-      .eq("statement_id", statement_id || null)
+      .or(`id.eq.${id},statement_id.eq.${id}`)
       .limit(1)
       .maybeSingle();
 
     if (error) return { success: false, error };
-    return {
-      success: true,
-      data,
-    };
+
+    return { success: true, data };
   },
 
   getTopupHistory: async (profile_id) => {
