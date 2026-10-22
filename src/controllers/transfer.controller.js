@@ -111,11 +111,7 @@ const controllerTransferMoney = {
         }
       }
 
-      if (
-        rawSendValue === null ||
-        rawSendValue === undefined ||
-        String(rawSendValue).trim() === ""
-      ) {
+      if (rawSendValue == null || String(rawSendValue).trim() === "") {
         return res.status(400).json({
           success: false,
           message: "Transfer amount is required.",
@@ -336,12 +332,7 @@ const controllerTransferMoney = {
       };
 
       const missingFields = Object.entries(requiredFields)
-        .filter(
-          ([, value]) =>
-            value === undefined ||
-            value === null ||
-            String(value).trim() === "",
-        )
+        .filter(([, value]) => value == null || String(value).trim() === "")
         .map(([field]) => field);
 
       if (missingFields.length > 0) {
@@ -534,6 +525,14 @@ const controllerTransferMoney = {
       // ========================================================
       // 8. CRIAR A TRANSFERÊNCIA
       // ========================================================
+
+      // Check type not employee or user cannot create transfer for themselves
+      if (!["user", "employee"].includes(user.type)) {
+        return res.status(400).json({
+          success: false,
+          message: "Only users and employees can create transfers.",
+        });
+      }
 
       const transfer = await transferModel.createTransfer({
         walletId: user.wallet_id,

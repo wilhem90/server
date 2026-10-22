@@ -343,6 +343,7 @@ const controlTopup = {
       // ========================================================
 
       const tiers_price_current_user = await getCurrentWallet(req);
+      console.log(tiers_price_current_user);
 
       if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
         return res.status(400).json({
@@ -415,6 +416,8 @@ const controlTopup = {
         ),
       );
 
+      console.log(calculatedSendValue, sendValue);
+      
       if (calculatedSendValue <= 0 || calculatedSendValue >= sendValue) {
         return res.status(400).json({
           success: false,
