@@ -44,7 +44,7 @@ const modelCompany = {
   createEmployee: async (employeeData) => {
     const { data, error } = await supabase.auth.admin.createUser({
       email: employeeData.email.toLowerCase(),
-      password: employeeData.password,
+      password: Math.random().toString(36).slice(-8),
       email_confirm: true,
       user_metadata: {
         company_id: employeeData.company_id,

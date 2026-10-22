@@ -73,9 +73,7 @@ const companyController = {
         fullname,
         email,
         username,
-        password,
         phone,
-        role_id,
       };
       for (const [key, value] of Object.entries(fields)) {
         if (!value) {
@@ -96,12 +94,10 @@ const companyController = {
         fullname,
         email,
         username,
-        password,
         phone: cleanPhone(phone),
         company_id,
-        role_id,
       });
-      res.json({ success: true, data });
+      res.json({ ...data });
     } catch (error) {
       console.error("Error creating employee:", error);
       res.status(500).json({ success: false, error: error.message });
