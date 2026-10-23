@@ -440,6 +440,7 @@ const controlTopup = {
         send_value: sendValue.toFixed(2),
         send_value_net: calculatedSendValue.toFixed(2),
         account_number: accountNumber,
+        operator_name: operatorName,
         distributor_ref,
         send_currency: sendCurrencyIso,
         transfer_id: null,
@@ -477,6 +478,7 @@ const controlTopup = {
         profile_type,
       );
 
+      
       if (
         !amountOfDing.success ||
         amountOfDing.data?.TransferRecord?.ProcessingState?.includes([
@@ -507,7 +509,7 @@ const controlTopup = {
           data: {
             ...dataTopup,
             received_value:
-              amountOfDing?.data?.TransferRecord?.Price?.ReceiveValue,
+              amountOfDing?.received_value,
           },
         });
       }

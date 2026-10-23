@@ -12,14 +12,19 @@ const modelTopup = {
       ValidateOnly: true,
     });
 
+    if (dataTopup.validate_only) {
+      return {
+        success: true,
+        received_value:
+          validate_received_value?.data?.TransferRecord?.Price?.ReceiveValue,
+      };
+    }
     if (!dataTopup.distributor_ref) {
       return {
         success: false,
         error: "DistributorRef é obrigatório.",
       };
     }
-
-    console.log("validate_received_value:", validate_received_value);
 
     if (!validate_received_value?.success) {
       return {
@@ -45,6 +50,7 @@ const modelTopup = {
       p_sku_code: dataTopup.sku_code,
       p_send_value: dataTopup.send_value,
       p_account_number: dataTopup.account_number,
+      p_operator_name: dataTopup.operator_name,
       p_send_currency: dataTopup.send_currency,
       p_transfer_id: dataTopup.transfer_id ?? null,
       p_distributor_ref: dataTopup.distributor_ref,
@@ -80,7 +86,50 @@ const modelTopup = {
       ValidateOnly: true,
     });
 
-    return { success: true, data: topup, responseDing };
+    // Status check for Ding response
+
+    if (
+      responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0" &&
+      ["Complete", "Processing", "Submitted"].includes(
+        responseDing?.data?.TransferRecord?.ProcessingState,
+      )
+    ) {
+      const { error: processingRefundError } = await supabase.rpc(
+        "refund_topup",
+        {
+          p_topup_id: topup.id,
+          p_error_code: "DING_FAILED",
+          p_error_message: `Ding transfer failed with status: ${responseDing?.data?.TransferRecord?.ProcessingState}`,
+          p_raw_api_response: JSON.stringify(responseDing),
+        },
+      );
+
+      if (processingRefundError) {
+        return {
+          success: false,
+          error: `Failed to process refund for top-up ID: ${topup.id}`,
+        };
+      }
+      return {
+        success: false,
+        error: `Ding transfer failed with status: ${responseDing?.data?.TransferRecord?.ProcessingState}`,
+      };
+    }
+
+    const { data: updatedTopup, error: updateError } = await supabase
+      .from("topups")
+      .update({
+        status: 'complete',
+        transfer_id: responseDing?.data?.TransferRecord?.TransferId?.TransferRef,
+      })
+      .eq("id", topup.id)
+      .select();
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true, data: updatedTopup[0] };
   },
 
   getTopupById: async (id) => {
