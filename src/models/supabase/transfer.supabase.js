@@ -2,7 +2,6 @@ import supabase from "./conexion.js";
 
 const transferModel = {
   createTransfer: async (dataTransfer) => {
-
     const { data, error } = await supabase.rpc("create_intent_transaction", {
       p_wallet_id: dataTransfer.walletId,
       p_created_by: dataTransfer.actorId,
@@ -43,19 +42,10 @@ const transferModel = {
     startDate,
     endDate,
   }) => {
-    const dateNow = new Date();
-    let end_date;
-    let start_date;
-    if (!startDate && !endDate) {
-      start_date = new Date(dateNow.setDate(dateNow.getDate() - 30));
-      end_date = dateNow;
-    }
-    if (startDate) {
-      start_date = startDate;
-    }
-    if (endDate) {
-      end_date = endDate;
-    }
+    const end_date = endDate ? new Date(endDate) : new Date();
+    const start_date = startDate
+      ? new Date(startDate)
+      : new Date(end_date.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     const { data, error } = await supabase.rpc("get_transfers", {
       p_wallet_id: walletId,
@@ -63,8 +53,8 @@ const transferModel = {
       p_client_id: clientId,
       p_limit: limit,
       p_offset: offset,
-      p_start_date: new Date(start_date),
-      p_end_date: new Date(end_date),
+      p_start_date: start_date,
+      p_end_date: end_date,
     });
 
     if (error) {
