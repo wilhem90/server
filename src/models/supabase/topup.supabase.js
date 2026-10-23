@@ -69,12 +69,9 @@ const modelTopup = {
   },
 
   getTopupById: async (id) => {
-    const { data, error } = await supabase
-      .from("topups")
-      .select("*")
-      .eq("statement_id", id)
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("get_topup_by_statement_id", {
+      p_statement_id: id,
+    });
 
     if (error) return { success: false, error };
 
