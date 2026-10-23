@@ -53,7 +53,6 @@ const modelTopup = {
       p_operator_name: dataTopup.operator_name,
       p_send_currency: dataTopup.send_currency,
       p_transfer_id: dataTopup.transfer_id ?? null,
-      p_distributor_ref: dataTopup.distributor_ref,
       p_received_currency: dataTopup.received_currency,
       p_received_value: received_value,
       p_fee: dataTopup.fee ?? 0,
@@ -116,6 +115,7 @@ const modelTopup = {
       };
     }
 
+    console.log(responseDing);
     const { data: updatedTopup, error: updateError } = await supabase
       .from("topups")
       .update({
