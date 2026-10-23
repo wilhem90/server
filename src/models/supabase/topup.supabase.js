@@ -9,7 +9,7 @@ const modelTopup = {
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
       DistributorRef: dataTopup.distributor_ref,
-      ValidateOnly: true,
+      ValidateOnly: dataTopup.validate_only,
     });
 
     if (dataTopup.validate_only) {
@@ -83,7 +83,7 @@ const modelTopup = {
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
       DistributorRef: dataTopup.distributor_ref,
-      ValidateOnly: true,
+      ValidateOnly: dataTopup.validate_only,
     });
 
     // Status check for Ding response
