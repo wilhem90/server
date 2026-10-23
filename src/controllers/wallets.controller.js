@@ -20,6 +20,7 @@ const controlWallets = {
           active: wallet.active,
           profile_id: wallet.profile_id,
           balance: wallet.balance,
+          currency: wallet.currency,
         },
       });
     } catch (error) {
