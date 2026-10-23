@@ -72,7 +72,7 @@ const modelTopup = {
     const { data, error } = await supabase
       .from("topups")
       .select("*")
-      .or(`id.eq.${id},statement_id.eq.${id}`)
+      .eq("statement_id", id)
       .limit(1)
       .maybeSingle();
 
