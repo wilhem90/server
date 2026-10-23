@@ -119,6 +119,7 @@ const companyController = {
           error: "User is not a company",
         });
       }
+      console.log("Company ID:", company_id);
       const data = await modelCompany.myEmployees({ company_id });
       res.json({ success: true, ...data });
     } catch (error) {

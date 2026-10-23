@@ -527,10 +527,10 @@ const controllerTransferMoney = {
       // ========================================================
 
       // Check type not employee or user cannot create transfer for themselves
-      if (!["user", "employee"].includes(user.type)) {
+      if (!["user", "employee", "company"].includes(user.type)) {
         return res.status(400).json({
           success: false,
-          message: "Only users and employees can create transfers.",
+          message: "Only users, employees, and companies can create transfers.",
         });
       }
 
