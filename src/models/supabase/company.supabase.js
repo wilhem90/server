@@ -178,7 +178,7 @@ const modelCompany = {
     }
 
     if (date) {
-      query = query.eq("created_at", date.replaceAll("-", ""));
+      query = query.eq("created_at", date);
     }
 
     const { data, error } = await query.maybeSingle();

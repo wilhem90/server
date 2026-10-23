@@ -233,7 +233,7 @@ const controllerTransferMoney = {
 
         const result = await modelCompany.configApp({
           name: "exchange_rate",
-          date: today.replaceAll("-", ""),
+          date: today,
         });
 
         if (result.error) {
