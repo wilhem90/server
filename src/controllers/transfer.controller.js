@@ -212,10 +212,10 @@ const controllerTransferMoney = {
       const today = new Date().toISOString().split("T")[0];
 
       let { data: exchangeRateData, error: exchangeRateError } =
-        await modelCompany.configApp({
+        (await modelCompany.configApp({
           name: "exchange_rate",
           date: today,
-        });
+        })) ?? { error: true };
 
       if (exchangeRateError) {
         console.error("Error fetching exchange rate:", exchangeRateError);
@@ -231,10 +231,10 @@ const controllerTransferMoney = {
       if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
         await handleExchangeRate();
 
-        const result = await modelCompany.configApp({
+        const result = (await modelCompany.configApp({
           name: "exchange_rate",
           date: today,
-        });
+        })) ?? { error: true };
 
         if (result.error) {
           console.error("Error refreshing exchange rate:", result.error);
