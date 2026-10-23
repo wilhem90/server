@@ -499,7 +499,6 @@ const controlTopup = {
       // ========================================================
 
       if (Boolean(validateOnly)) {
-        console.log(amountOfDing);
         return res.status(200).json({
           success: true,
           data: {
@@ -516,7 +515,6 @@ const controlTopup = {
       return res.status(201).json({
         success: true,
         data: {
-          distributor_ref,
           sendValue: sendValue.toFixed(2),
           calculatedSendValue: calculatedSendValue.toFixed(2),
           fee: fee.toFixed(2),
