@@ -19,12 +19,6 @@ const modelTopup = {
           validate_received_value?.data?.TransferRecord?.Price?.ReceiveValue,
       };
     }
-    if (!dataTopup.distributor_ref) {
-      return {
-        success: false,
-        error: "DistributorRef é obrigatório.",
-      };
-    }
 
     if (!validate_received_value?.success) {
       return {
@@ -88,8 +82,8 @@ const modelTopup = {
     // Status check for Ding response
 
     if (
-      responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0" &&
-      ["Complete", "Processing", "Submitted"].includes(
+      (responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0") &&
+      !["Complete", "Processing", "Submitted"].includes(
         responseDing?.data?.TransferRecord?.ProcessingState,
       )
     ) {
@@ -115,7 +109,6 @@ const modelTopup = {
       };
     }
 
-    console.log(responseDing);
     const { data: updatedTopup, error: updateError } = await supabase
       .from("topups")
       .update({

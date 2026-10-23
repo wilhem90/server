@@ -312,7 +312,6 @@ const controlTopup = {
         receiveCountryName,
         operatorName,
         receiveCurrencyIso,
-        distributor_ref,
       } = req.body;
 
       // ========================================================
@@ -326,7 +325,6 @@ const controlTopup = {
         "receiveCurrencyIso",
         "accountNumber",
         "operatorName",
-        "distributor_ref",
       ];
 
       for (const field of requiredFields) {
@@ -441,9 +439,7 @@ const controlTopup = {
         send_value_net: calculatedSendValue.toFixed(2),
         account_number: accountNumber,
         operator_name: operatorName,
-        distributor_ref,
         send_currency: sendCurrencyIso,
-        transfer_id: null,
         received_currency: receiveCurrencyIso,
         fee: fee.toFixed(2),
         validate_only: Boolean(validateOnly),
