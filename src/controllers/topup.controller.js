@@ -343,7 +343,6 @@ const controlTopup = {
       // ========================================================
 
       const tiers_price_current_user = await getCurrentWallet(req);
-      console.log(tiers_price_current_user);
 
       if (Object.keys(tiers_price_current_user[0] || {}).length === 0) {
         return res.status(400).json({
@@ -416,8 +415,6 @@ const controlTopup = {
         ),
       );
 
-      console.log(calculatedSendValue, sendValue);
-      
       if (calculatedSendValue <= 0 || calculatedSendValue >= sendValue) {
         return res.status(400).json({
           success: false,
@@ -435,10 +432,6 @@ const controlTopup = {
       }
 
       // ========================================================
-      // DISTRIBUTOR REF
-      // ========================================================
-
-      // ========================================================
       // DADOS DA RECARGA
       // ========================================================
       const dataTopup = {
@@ -450,7 +443,6 @@ const controlTopup = {
         distributor_ref,
         send_currency: sendCurrencyIso,
         transfer_id: null,
-        received_value: calculatedSendValue.toFixed(2),
         received_currency: receiveCurrencyIso,
         fee: fee.toFixed(2),
         validate_only: Boolean(validateOnly),
@@ -513,7 +505,9 @@ const controlTopup = {
         return res.status(200).json({
           success: true,
           data: {
-            ...amountOfDing?.data?.TransferRecord?.Price,
+            ...dataTopup,
+            received_value:
+              amountOfDing?.data?.TransferRecord?.Price?.ReceiveValue,
           },
         });
       }
@@ -531,6 +525,8 @@ const controlTopup = {
           fee: fee.toFixed(2),
           fee_provider: (fee_provider > 0 ? fee_provider * fee : 0).toFixed(2),
           send_value_net: calculatedSendValue.toFixed(2),
+          received_value:
+            amountOfDing?.responseDing?.TransferRecord?.Price?.ReceiveValue,
           ...amountOfDing?.data,
         },
       });

@@ -2,7 +2,6 @@ import supabase from "./conexion.js";
 
 const transferModel = {
   createTransfer: async (dataTransfer) => {
-    console.log(dataTransfer);
 
     const { data, error } = await supabase.rpc("create_intent_transaction", {
       p_wallet_id: dataTransfer.walletId,
@@ -57,8 +56,6 @@ const transferModel = {
     if (endDate) {
       end_date = endDate;
     }
-
-    console.log({ start_date, end_date });
 
     const { data, error } = await supabase.rpc("get_transfers", {
       p_wallet_id: walletId,

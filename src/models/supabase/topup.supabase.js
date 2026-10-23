@@ -3,21 +3,38 @@ import supabase from "./conexion.js";
 
 const modelTopup = {
   createTopup: async (dataTopup, profile_type) => {
-    if (dataTopup.validate_only) {
-      return await requestDing("SendTransfer", "POST", {
-        SkuCode: dataTopup.sku_code,
-        SendValue: dataTopup.send_value_net,
-        SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
-        AccountNumber: dataTopup.account_number,
-        DistributorRef: dataTopup.distributor_ref,
-        ValidateOnly: true,
-      });
-    }
+    const validate_received_value = await requestDing("SendTransfer", "POST", {
+      SkuCode: dataTopup.sku_code,
+      SendValue: dataTopup.send_value_net,
+      SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
+      AccountNumber: dataTopup.account_number,
+      DistributorRef: dataTopup.distributor_ref,
+      ValidateOnly: true,
+    });
 
     if (!dataTopup.distributor_ref) {
       return {
         success: false,
         error: "DistributorRef é obrigatório.",
+      };
+    }
+
+    console.log("validate_received_value:", validate_received_value);
+
+    if (!validate_received_value?.success) {
+      return {
+        success: false,
+        error: "Validation with Ding failed.",
+      };
+    }
+
+    const received_value =
+      validate_received_value?.data?.TransferRecord?.Price?.ReceiveValue;
+
+    if (!received_value) {
+      return {
+        success: false,
+        error: "Failed to retrieve received value from Ding validation.",
       };
     }
 
@@ -32,15 +49,13 @@ const modelTopup = {
       p_transfer_id: dataTopup.transfer_id ?? null,
       p_distributor_ref: dataTopup.distributor_ref,
       p_received_currency: dataTopup.received_currency,
-      p_received_value: dataTopup.received_value,
+      p_received_value: received_value,
       p_fee: dataTopup.fee ?? 0,
       p_fee_provider: dataTopup.fee_provider ?? 0,
       p_error_code: null,
       p_error_message: null,
       p_raw_api_response: null,
     });
-
-    console.log(data, error);
 
     if (error) {
       return { success: false, error: error.message };

@@ -182,7 +182,6 @@ const modelCompany = {
     }
 
     const { data, error } = await query.maybeSingle();
-    console.log(data, error);
 
     if (error) {
       console.error("Error al obtener la configuración:", error);
