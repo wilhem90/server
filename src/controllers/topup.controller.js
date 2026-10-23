@@ -474,7 +474,6 @@ const controlTopup = {
         profile_type,
       );
 
-      
       if (
         !amountOfDing.success ||
         amountOfDing.data?.TransferRecord?.ProcessingState?.includes([
@@ -500,12 +499,12 @@ const controlTopup = {
       // ========================================================
 
       if (Boolean(validateOnly)) {
+        console.log(amountOfDing);
         return res.status(200).json({
           success: true,
           data: {
             ...dataTopup,
-            received_value:
-              amountOfDing?.received_value,
+            received_value: amountOfDing?.received_value,
           },
         });
       }

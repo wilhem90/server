@@ -8,10 +8,11 @@ const modelTopup = {
       SendValue: dataTopup.send_value_net,
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
-      DistributorRef: dataTopup.distributor_ref,
+      DistributorRef: dataTopup.account_number,
       ValidateOnly: dataTopup.validate_only,
     });
 
+    console.log(validate_received_value);
     if (dataTopup.validate_only) {
       return {
         success: true,
@@ -75,14 +76,14 @@ const modelTopup = {
       SendValue: dataTopup.send_value_net,
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
-      DistributorRef: dataTopup.distributor_ref,
+      DistributorRef: dataTopup.account_number,
       ValidateOnly: dataTopup.validate_only,
     });
 
     // Status check for Ding response
 
     if (
-      (responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0") &&
+      responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0" &&
       !["Complete", "Processing", "Submitted"].includes(
         responseDing?.data?.TransferRecord?.ProcessingState,
       )
@@ -112,8 +113,9 @@ const modelTopup = {
     const { data: updatedTopup, error: updateError } = await supabase
       .from("topups")
       .update({
-        status: 'complete',
-        transfer_id: responseDing?.data?.TransferRecord?.TransferId?.TransferRef,
+        status: "complete",
+        transfer_id:
+          responseDing?.data?.TransferRecord?.TransferId?.TransferRef,
       })
       .eq("id", topup.id)
       .select();
