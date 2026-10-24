@@ -115,16 +115,12 @@ const modelCompany = {
     };
   },
 
-  // get Client by ID or name
+  // Get the recipient last used with an account number in the wallet's transfers
   getBeneficiary: async ({ account_number, wallet_id }) => {
-    const { data, error } = await supabase
-      .from("transfers")
-      .select("*")
-      .eq("wallet_id", wallet_id)
-      .eq("account_number", account_number)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("get_beneficiary", {
+      p_wallet_id: wallet_id,
+      p_account_number: account_number,
+    });
 
     if (error) {
       console.error("Error fetching beneficiary:", error);
@@ -136,24 +132,17 @@ const modelCompany = {
 
     return {
       success: true,
-      data,
+      data: data?.[0] ?? null,
     };
   },
 
-  // Get Client by ID or name
+  // Get Client by document, phone and/or name
   getClient: async ({ name, doc_id, phone }) => {
-    let query = supabase.from("clients").select("*");
-    if (name) {
-      query = query.ilike("client_name", `%${name}%`);
-    }
-    if (doc_id) {
-      query = query.eq("doc_id", doc_id);
-    }
-    if (phone) {
-      query = query.eq("phone", phone);
-    }
-
-    const { data, error } = await query.maybeSingle();
+    const { data, error } = await supabase.rpc("get_client", {
+      p_name: name || null,
+      p_doc_id: doc_id || null,
+      p_phone: phone || null,
+    });
 
     if (error) {
       console.error("Error fetching client:", error);
@@ -165,7 +154,7 @@ const modelCompany = {
 
     return {
       success: true,
-      data,
+      data: data?.[0] ?? null,
     };
   },
 
