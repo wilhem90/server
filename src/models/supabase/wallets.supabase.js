@@ -43,6 +43,30 @@ const walletSupabase = {
     };
   },
 
+  // Find the destination wallet by the informed account number or email.
+  getWalletByAccount: async ({ account_number, email }) => {
+    const { data, error } = await supabase.rpc("get_wallet_account", {
+      p_profile_id: null,
+      p_account_number: account_number || null,
+      p_email: email || null,
+    });
+
+    if (error || !data?.length) {
+      console.log("getWalletByAccount result:", data, error);
+      return { success: false, error: error || "Wallet not found" };
+    }
+
+    return {
+      success: true,
+      wallet_id: data[0].wallet_id,
+      account_number: data[0].account_number,
+      balance: data[0].balance,
+      active: data[0].active,
+      profile_id: data[0].profile_id,
+      full_name: data[0].full_name,
+    };
+  },
+
   // Deposit into a wallet. Uses an RPC for atomic increment (recommended).
   createIntentTransaction: async (dataDeposit) => {
     if (dataDeposit.amount <= 0) {

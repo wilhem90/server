@@ -384,8 +384,8 @@ const controllerTransferMoney = {
         // Evita associar um ID de cliente a outro documento.
         if (
           doc_id &&
-          String(existingById.doc_id).trim().toLowerCase() !==
-            String(doc_id).trim().toLowerCase()
+          String(existingById.doc_id ?? "").replace(/\D/g, "") !==
+            String(doc_id).replace(/\D/g, "")
         ) {
           return res.status(400).json({
             success: false,
@@ -395,7 +395,8 @@ const controllerTransferMoney = {
 
         clientId = existingById.id;
       } else {
-        const normalizedDocId = typeof doc_id === "string" ? doc_id.trim() : "";
+        const normalizedDocId =
+          typeof doc_id === "string" ? doc_id.replace(/\D/g, "") : "";
 
         const normalizedClientName =
           typeof client_name === "string" ? client_name.trim() : "";
@@ -538,7 +539,7 @@ const controllerTransferMoney = {
         walletId: user.wallet_id,
         profileId: user.id,
         actorId: user.id,
-        doc_id: doc_id ?? null,
+        doc_id: doc_id ? String(doc_id).replace(/\D/g, "") : null,
         client_name: client_name ?? null,
         client_id: clientId,
         phone: phone_client ?? null,
@@ -634,12 +635,21 @@ const controllerTransferMoney = {
         endDate,
       } = req.query;
 
+      for (const d of [startDate, endDate]) {
+        if (d && Number.isNaN(new Date(d).getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid date filter.",
+          });
+        }
+      }
+
       const transfers = await transferModel.getTransfers({
         walletId: user.wallet_id,
         employeeId: user.id,
         clientId,
-        limit: parseInt(limit, 10),
-        offset: parseInt(offset, 10),
+        limit: Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200),
+        offset: Math.max(parseInt(offset, 10) || 0, 0),
         startDate,
         endDate,
       });

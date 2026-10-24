@@ -1,4 +1,3 @@
-import { config } from "dotenv";
 import supabase from "./conexion.js";
 
 const modelCompany = {
@@ -117,11 +116,13 @@ const modelCompany = {
   },
 
   // get Client by ID or name
-  getBeneficiary: async ({ account_number }) => {
+  getBeneficiary: async ({ account_number, wallet_id }) => {
     const { data, error } = await supabase
       .from("transfers")
       .select("*")
+      .eq("wallet_id", wallet_id)
       .eq("account_number", account_number)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 

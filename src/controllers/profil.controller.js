@@ -39,15 +39,15 @@ const controlProfil = {
         });
       }
 
-      const getEmail = await profilModel.getProfileByUsername(username);
-      if (!getEmail) {
-        return res.status(400).json({
+      const profiles = await profilModel.getProfileByUsername(username);
+      if (!profiles?.length) {
+        return res.status(401).json({
           success: false,
-          error: "User not found",
+          error: "Invalid username or password",
         });
       }
 
-      email = getEmail[0].email;
+      email = profiles[0].email;
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -56,9 +56,9 @@ const controlProfil = {
       if (error) {
         console.error("Supabase login error:", error);
 
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          error: error.message,
+          error: "Invalid username or password",
         });
       }
 

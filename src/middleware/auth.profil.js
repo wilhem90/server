@@ -37,9 +37,7 @@ const middlewareAuthProfil = {
       }
 
       // Busca o perfil completo da aplicação
-      const user = await profilModel.getProfileByUsername (
-        authUser.user_metadata.user_name,
-      );
+      const user = await profilModel.getProfileById(authUser.id);
 
       if (!user) {
         return res.status(500).json({

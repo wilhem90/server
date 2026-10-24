@@ -39,4 +39,10 @@ router.get(
   controlTopup.getTopupHistory,
 );
 
+router.post(
+  "/reconcile",
+  middlewareAuthProfil.validateAuth,
+  controlTopup.reconcileTopups,
+);
+
 export default router;

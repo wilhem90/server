@@ -16,6 +16,7 @@ async function requestDing(endpoint, method = "GET", payload = null) {
   try {
     const options = {
       method,
+      signal: AbortSignal.timeout(30000),
       headers: {
         API_KEY: apiKey,
         Accept: "application/json",

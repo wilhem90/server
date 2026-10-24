@@ -34,8 +34,8 @@ const controlWallets = {
   // Controller for handling wallet-related operations, such as deposits and balance inquiries.
   deposit: async (req, res) => {
     try {
-      const { account_number, amount, validateOnly, email } = req.body;
-      console.log(req.user);
+      const { account_number, validateOnly, email } = req.body;
+      const amount = Number(req.body.amount);
 
       if (!["company", "owner", "admin"].includes(req.user?.type)) {
         return res.status(403).json({
@@ -43,15 +43,18 @@ const controlWallets = {
           message: "Unauthorized role.",
         });
       }
-      if ((!account_number && !email) || !amount) {
+      if ((!account_number && !email) || !Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({
           success: false,
-          message: "account_number or email and amount are required.",
+          message: "account_number or email and a positive amount are required.",
         });
       }
 
       //   Buscamos a conta primeira
-      const wallet = await walletSupabase.getWallet(account_number, req.user);
+      const wallet = await walletSupabase.getWalletByAccount({
+        account_number,
+        email,
+      });
       if (!wallet?.success || !wallet?.account_number) {
         return res.status(404).json({
           success: false,
@@ -59,7 +62,7 @@ const controlWallets = {
         });
       }
 
-      if (validateOnly) {
+      if (validateOnly === true || validateOnly === "true") {
         return res.status(200).json({
           success: true,
           data: {
@@ -185,12 +188,14 @@ const controlWallets = {
     try {
       const { user } = req;
       const { limit = 50, offset = 0 } = req.query;
+      const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+      const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
 
       const statements = await walletSupabase.getWalletTransactionBalances(
         user.wallet_id,
         null,
-        limit,
-        offset,
+        safeLimit,
+        safeOffset,
       );
       if (!statements?.success) {
         return res.status(400).json({

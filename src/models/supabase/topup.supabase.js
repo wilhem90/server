@@ -3,19 +3,22 @@ import supabase from "./conexion.js";
 
 const modelTopup = {
   createTopup: async (dataTopup, profile_type) => {
+    // Always a dry run: the real transfer is only sent after the wallet debit.
     const validate_received_value = await requestDing("SendTransfer", "POST", {
       SkuCode: dataTopup.sku_code,
       SendValue: dataTopup.send_value_net,
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
       DistributorRef: dataTopup.account_number,
-      ValidateOnly: dataTopup.validate_only,
+      ValidateOnly: true,
     });
 
-    console.log(validate_received_value);
     if (dataTopup.validate_only) {
       return {
-        success: true,
+        success: Boolean(validate_received_value?.success),
+        error: validate_received_value?.success
+          ? undefined
+          : "Validation with Ding failed.",
         received_value:
           validate_received_value?.data?.TransferRecord?.Price?.ReceiveValue,
       };
@@ -76,24 +79,39 @@ const modelTopup = {
       SendValue: dataTopup.send_value_net,
       SendCurrencyIso: dataTopup.send_currency?.toUpperCase(),
       AccountNumber: dataTopup.account_number,
-      DistributorRef: dataTopup.account_number,
-      ValidateOnly: dataTopup.validate_only,
+      DistributorRef: String(topup.id),
+      ValidateOnly: false,
     });
 
-    // Status check for Ding response
+    const dingRecord = responseDing?.data?.TransferRecord;
+    const dingState = dingRecord?.ProcessingState;
 
-    if (
-      responseDing?.data?.TransferRecord?.TransferId?.TransferRef === "0" &&
-      !["Complete", "Processing", "Submitted"].includes(
-        responseDing?.data?.TransferRecord?.ProcessingState,
-      )
-    ) {
+    // A network error or 5xx leaves the outcome unknown, so no refund is issued:
+    // the transfer may have been delivered and must be reconciled manually.
+    const outcomeUnknown =
+      !responseDing?.success &&
+      (responseDing?.status == null || responseDing.status >= 500);
+
+    if (outcomeUnknown) {
+      console.error("[createTopup] Unknown Ding outcome for", topup.id, responseDing);
+      return {
+        success: false,
+        error: `Top-up ${topup.id} is pending manual review.`,
+      };
+    }
+
+    const dingFailed =
+      !responseDing?.success ||
+      responseDing.data?.ResultCode !== 1 ||
+      !["Complete", "Processing", "Submitted"].includes(dingState);
+
+    if (dingFailed) {
       const { error: processingRefundError } = await supabase.rpc(
         "refund_topup",
         {
           p_topup_id: topup.id,
           p_error_code: "DING_FAILED",
-          p_error_message: `Ding transfer failed with status: ${responseDing?.data?.TransferRecord?.ProcessingState}`,
+          p_error_message: `Ding transfer failed with status: ${dingState ?? responseDing?.error}`,
           p_raw_api_response: JSON.stringify(responseDing),
         },
       );
@@ -106,25 +124,116 @@ const modelTopup = {
       }
       return {
         success: false,
-        error: `Ding transfer failed with status: ${responseDing?.data?.TransferRecord?.ProcessingState}`,
+        error: `Ding transfer failed with status: ${dingState ?? responseDing?.error}`,
       };
     }
+
+    const finalStatus = dingState === "Complete" ? "complete" : "processing";
 
     const { data: updatedTopup, error: updateError } = await supabase
       .from("topups")
       .update({
-        status: "complete",
-        transfer_id:
-          responseDing?.data?.TransferRecord?.TransferId?.TransferRef,
+        status: finalStatus,
+        transfer_id: dingRecord?.TransferId?.TransferRef,
       })
       .eq("id", topup.id)
       .select();
 
     if (updateError) {
-      return { success: false, error: updateError.message };
+      // Ding already accepted the transfer, so reporting failure would invite a retry and a double charge.
+      console.error("[createTopup] Ding accepted but DB update failed", topup.id, updateError);
+      return {
+        success: true,
+        data: {
+          ...topup,
+          status: finalStatus,
+          transfer_id: dingRecord?.TransferId?.TransferRef,
+        },
+        received_value: dingRecord?.Price?.ReceiveValue ?? received_value,
+      };
     }
 
-    return { success: true, data: updatedTopup[0] };
+    return {
+      success: true,
+      data: updatedTopup[0],
+      received_value: dingRecord?.Price?.ReceiveValue ?? received_value,
+    };
+  },
+
+  // Re-check "processing" top-ups (and stale "pending" ones left by an unknown
+  // Ding outcome) against DingConnect and settle them.
+  reconcileTopups: async ({ pendingOlderThanMinutes = 10, limit = 50 } = {}) => {
+    const { data: processing, error } = await supabase
+      .from("topups")
+      .select("id, status")
+      .eq("status", "processing")
+      .limit(limit);
+
+    if (error) return { success: false, error: error.message };
+
+    const cutoff = new Date(
+      Date.now() - pendingOlderThanMinutes * 60 * 1000,
+    ).toISOString();
+
+    const { data: pending, error: pendingError } = await supabase
+      .from("topups")
+      .select("id, status")
+      .eq("status", "pending")
+      .lt("created_at", cutoff)
+      .limit(limit);
+
+    if (pendingError) {
+      console.error("[reconcileTopups] pending query failed:", pendingError);
+    }
+
+    const results = [];
+
+    for (const topup of [...(processing || []), ...(pending || [])]) {
+      const ding = await requestDing("ListTransferRecords", "POST", {
+        DistributorRef: String(topup.id),
+        Take: 1,
+      });
+
+      const record = ding?.data?.Items?.[0] ?? ding?.data?.TransferRecords?.[0];
+      const state = record?.ProcessingState;
+
+      if (!ding?.success || !record || !state) {
+        // Nothing to act on: a missing record may only mean Ding has not indexed it yet.
+        results.push({ id: topup.id, action: "unresolved" });
+        continue;
+      }
+
+      if (state === "Complete") {
+        const { error: updateError } = await supabase
+          .from("topups")
+          .update({
+            status: "complete",
+            transfer_id: record.TransferId?.TransferRef,
+          })
+          .eq("id", topup.id);
+
+        results.push({
+          id: topup.id,
+          action: updateError ? "update_failed" : "complete",
+        });
+      } else if (state === "Failed" || state === "Cancelled") {
+        const { error: refundError } = await supabase.rpc("refund_topup", {
+          p_topup_id: topup.id,
+          p_error_code: `DING_${state.toUpperCase()}`,
+          p_error_message: `Ding transfer ended with status: ${state}`,
+          p_raw_api_response: JSON.stringify(ding.data),
+        });
+
+        results.push({
+          id: topup.id,
+          action: refundError ? "refund_failed" : "refunded",
+        });
+      } else {
+        results.push({ id: topup.id, action: "still_processing" });
+      }
+    }
+
+    return { success: true, data: results };
   },
 
   getTopupById: async (id) => {

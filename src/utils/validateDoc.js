@@ -1,6 +1,9 @@
 const validateCPF = (cpf) => {
+  if (typeof cpf !== "string") {
+    return false;
+  }
   cpf = cpf.replace(/[^\d]+/g, "");
-  if (cpf.length !== 11) {
+  if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) {
     return false;
   }
   let sum = 0;

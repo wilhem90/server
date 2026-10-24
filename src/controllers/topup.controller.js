@@ -305,7 +305,6 @@ const controlTopup = {
 
       const {
         skuCode,
-        sendValue,
         sendCurrencyIso,
         accountNumber,
         validateOnly,
@@ -313,6 +312,16 @@ const controlTopup = {
         operatorName,
         receiveCurrencyIso,
       } = req.body;
+
+      const sendValue = Number(req.body.sendValue);
+      const isValidateOnly = validateOnly === true || validateOnly === "true";
+
+      if (!Number.isFinite(sendValue) || sendValue <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid sendValue.",
+        });
+      }
 
       // ========================================================
       // VALIDAR CAMPOS
@@ -442,12 +451,12 @@ const controlTopup = {
         send_currency: sendCurrencyIso,
         received_currency: receiveCurrencyIso,
         fee: fee.toFixed(2),
-        validate_only: Boolean(validateOnly),
+        validate_only: isValidateOnly,
         fee_provider: (fee_provider > 0 ? fee_provider * fee : 0).toFixed(2),
         error_code: null,
         error_message: null,
         raw_api_response: {
-          validateOnly: Boolean(validateOnly),
+          validateOnly: isValidateOnly,
           transactionType: "topup",
           operatorName,
           receiveCountryName,
@@ -474,31 +483,17 @@ const controlTopup = {
         profile_type,
       );
 
-      if (
-        !amountOfDing.success ||
-        amountOfDing.data?.TransferRecord?.ProcessingState?.includes([
-          "Failed",
-          "Cancelled",
-        ])
-      ) {
+      if (!amountOfDing.success) {
         return res.status(400).json({
           success: false,
-          error: amountOfDing.data?.TransferRecord?.ProcessingState?.includes(
-            "Failed",
-          )
-            ? "Failed"
-            : amountOfDing.data?.TransferRecord?.ProcessingState?.includes(
-                  "Cancelled",
-                )
-              ? "Cancelled"
-              : null,
+          error: amountOfDing.error || "Top-up failed.",
         });
       }
       // ========================================================
       // VALIDATE ONLY
       // ========================================================
 
-      if (Boolean(validateOnly)) {
+      if (isValidateOnly) {
         return res.status(200).json({
           success: true,
           data: {
@@ -520,8 +515,7 @@ const controlTopup = {
           fee: fee.toFixed(2),
           fee_provider: (fee_provider > 0 ? fee_provider * fee : 0).toFixed(2),
           send_value_net: calculatedSendValue.toFixed(2),
-          received_value:
-            amountOfDing?.responseDing?.TransferRecord?.Price?.ReceiveValue,
+          received_value: amountOfDing?.received_value,
           ...amountOfDing?.data,
         },
       });
@@ -577,6 +571,30 @@ const controlTopup = {
       return res.status(400).json({
         success: false,
         message: error?.message || "Error retrieving top-up history.",
+      });
+    }
+  },
+
+  reconcileTopups: async (req, res) => {
+    try {
+      if (req.user?.type !== "superadmin") {
+        return res.status(403).json({
+          success: false,
+          message: "Unauthorized role.",
+        });
+      }
+
+      const result = await modelTopup.reconcileTopups();
+      if (!result.success) {
+        return res.status(500).json({ success: false, message: result.error });
+      }
+
+      return res.status(200).json({ success: true, data: result.data });
+    } catch (error) {
+      console.error("[ReconcileTopups]", error);
+      return res.status(500).json({
+        success: false,
+        message: error?.message || "Error reconciling top-ups.",
       });
     }
   },

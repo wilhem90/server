@@ -1,9 +1,10 @@
 import modelCompany from "../models/supabase/company.supabase.js";
 import validateCPF from "../utils/validateDoc.js";
+import handleExchangeRate from "../apis/exchangeRate.js";
 
 // Remove non-digit characters from phone number
 function cleanPhone(phone) {
-  return phone.replace(/\D/g, "");
+  return String(phone ?? "").replace(/\D/g, "");
 }
 
 const companyController = {
@@ -18,18 +19,11 @@ const companyController = {
             .json({ success: false, error: `Missing required field: ${key}` });
         }
       }
-      const { id: user_id, role } = req.user;
+      const { id: user_id } = req.user;
       if (!user_id) {
         return res
           .status(400)
           .json({ success: false, error: "Missing user ID" });
-      }
-
-      if (["owner", "superadmin", "user"].includes(role)) {
-        return res.status(403).json({
-          success: false,
-          error: "Forbidden, user is not allowed to create a company",
-        });
       }
 
       const data = await modelCompany.createCompany({
@@ -140,8 +134,10 @@ const companyController = {
         });
       }
 
-      // Data can usually be updated from the request body
-      const { phone, status, role } = req.body;
+      return res.status(501).json({
+        success: false,
+        error: "Employee update is not implemented yet",
+      });
     } catch (error) {
       return res.status(500).json({ success: false, error: error.message });
     }
@@ -214,6 +210,9 @@ const companyController = {
 
       const cleanPhoneNumber = phone ? cleanPhone(phone) : null;
       const cleanDocId = doc_id ? validateCPF(doc_id) : null;
+      if (doc_id && !cleanDocId) {
+        return res.status(400).json({ success: false, error: "Invalid CPF" });
+      }
       const client = await modelCompany.getClient({
         name,
         doc_id: cleanDocId,
@@ -239,8 +238,15 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
+      if (!req.user?.wallet_id) {
+        return res
+          .status(403)
+          .json({ success: false, error: "User has no wallet" });
+      }
+
       const beneficiary = await modelCompany.getBeneficiary({
         account_number,
+        wallet_id: req.user.wallet_id,
       });
       if (!beneficiary.success || !beneficiary.data) {
         return res
@@ -264,30 +270,16 @@ const companyController = {
   //   Get Settings App
   getSettingsApp: async (req, res) => {
     try {
-      const currentDate = new Date();
-      const date = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
-      let exchange_rate = await modelCompany.configApp({
-        name: "exchange_rate",
-        date,
-      });
+      const data = await handleExchangeRate();
 
-      if (exchange_rate.success && !exchange_rate.data) {
-        const exchangerate = await fetch(
-          `https://v6.exchangerate-api.com/v6/${process.env.EXCHANGE_KEY}/latest/brl`,
-        );
-
-        if (exchangerate.ok) {
-          const conversion_json = await exchangerate.json();
-          const rate = conversion_json.conversion_rates.HTG;
-
-          exchange_rate = await modelCompany.updateAppConfig({
-            value: rate,
-            name: "exchange_rate",
-          });
-        }
+      if (!data) {
+        return res.status(503).json({
+          success: false,
+          error: "A valid exchange rate is not available.",
+        });
       }
 
-      res.json(exchange_rate);
+      res.json({ success: true, data });
     } catch (error) {
       console.error("Error fetching settings app:", error);
       res.status(500).json({ success: false, error: error.message });

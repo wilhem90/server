@@ -29,6 +29,28 @@ const profilModel = {
     }
   },
 
+  getProfileById: async (id) => {
+    try {
+      if (!id) {
+        return null;
+      }
+
+      const { data, error } = await supabase.rpc("get_profile_by_id", {
+        p_profile_id: id,
+      });
+
+      if (error) {
+        console.error("[getProfileById] Supabase error:", error);
+        return null;
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error("[getProfileById] Unexpected error:", error);
+      return null;
+    }
+  },
+
   createProfil: async (profilData) => {
     try {
       if (!profilData?.email) {

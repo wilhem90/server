@@ -8,9 +8,9 @@ const exchangeRate = async () => {
     // Look up the row by name only, so we update it instead of inserting duplicates
     const existing = await modelCompany.configApp({ name: "exchange_rate" });
 
-    if (!existing?.success) return;
+    if (!existing?.success) return null;
     if (existing.data?.created_at === date && Number(existing.data.value) > 0) {
-      return;
+      return existing.data;
     }
 
     const response = await fetch(
@@ -19,7 +19,7 @@ const exchangeRate = async () => {
 
     if (!response.ok) {
       console.error("Exchange rate API error:", response.status);
-      return;
+      return null;
     }
 
     const conversion_json = await response.json();
@@ -27,17 +27,20 @@ const exchangeRate = async () => {
 
     if (!Number.isFinite(rate) || rate <= 0) {
       console.error("Exchange rate API returned no valid HTG rate");
-      return;
+      return null;
     }
 
-    await modelCompany.updateAppConfig({
+    const updated = await modelCompany.updateAppConfig({
       ...(existing.data?.id ? { id: existing.data.id } : {}),
       name: "exchange_rate",
       value: String(rate),
       created_at: date,
     });
+
+    return updated?.data?.[0] ?? null;
   } catch (error) {
     console.error("Erro ao buscar taxa de câmbio:", error);
+    return null;
   }
 };
 
