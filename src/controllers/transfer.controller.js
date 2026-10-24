@@ -209,45 +209,8 @@ const controllerTransferMoney = {
       // 3. OBTER A TAXA DE CÂMBIO
       // ========================================================
 
-      const today = new Date().toISOString().split("T")[0];
-
-      let { data: exchangeRateData, error: exchangeRateError } =
-        (await modelCompany.configApp({
-          name: "exchange_rate",
-          date: today,
-        })) ?? { error: true };
-
-      if (exchangeRateError) {
-        console.error("Error fetching exchange rate:", exchangeRateError);
-
-        return res.status(500).json({
-          success: false,
-          message: "Unable to retrieve the exchange rate.",
-        });
-      }
-
-      let exchangeRate = Number(exchangeRateData?.value);
-
-      if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
-        await handleExchangeRate();
-
-        const result = (await modelCompany.configApp({
-          name: "exchange_rate",
-          date: today,
-        })) ?? { error: true };
-
-        if (result.error) {
-          console.error("Error refreshing exchange rate:", result.error);
-
-          return res.status(500).json({
-            success: false,
-            message: "Unable to refresh the exchange rate.",
-          });
-        }
-
-        exchangeRateData = result.data;
-        exchangeRate = Number(exchangeRateData?.value);
-      }
+      const exchangeRateData = await handleExchangeRate();
+      const exchangeRate = Number(exchangeRateData?.value);
 
       if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
         return res.status(503).json({

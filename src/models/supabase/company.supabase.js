@@ -182,7 +182,10 @@ const modelCompany = {
       query = query.eq("created_at", date);
     }
 
-    const { data, error } = await query.maybeSingle();
+    const { data, error } = await query
+      .order("created_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error al obtener la configuración:", error);
@@ -193,6 +196,30 @@ const modelCompany = {
       success: true,
       data,
     };
+  },
+
+  getExchangeRate: async () => {
+    const { data, error } = await supabase.rpc("get_exchange_rate");
+
+    if (error) {
+      console.error("Error fetching exchange rate:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data ?? null };
+  },
+
+  setExchangeRate: async (rate) => {
+    const { data, error } = await supabase.rpc("set_exchange_rate", {
+      p_value: rate,
+    });
+
+    if (error) {
+      console.error("Error saving exchange rate:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
   },
 
   updateAppConfig: async (values) => {

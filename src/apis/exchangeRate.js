@@ -3,13 +3,10 @@ import modelCompany from "../models/supabase/company.supabase.js";
 dotenv.config();
 const exchangeRate = async () => {
   try {
-    const currentDate = new Date();
-    const date = currentDate.toISOString().split("T")[0];
-    // Look up the row by name only, so we update it instead of inserting duplicates
-    const existing = await modelCompany.configApp({ name: "exchange_rate" });
+    const existing = await modelCompany.getExchangeRate();
 
-    if (!existing?.success) return null;
-    if (existing.data?.created_at === date && Number(existing.data.value) > 0) {
+    if (!existing.success) return null;
+    if (existing.data?.is_today && Number(existing.data.value) > 0) {
       return existing.data;
     }
 
@@ -30,14 +27,9 @@ const exchangeRate = async () => {
       return null;
     }
 
-    const updated = await modelCompany.updateAppConfig({
-      ...(existing.data?.id ? { id: existing.data.id } : {}),
-      name: "exchange_rate",
-      value: String(rate),
-      created_at: date,
-    });
+    const saved = await modelCompany.setExchangeRate(rate);
 
-    return updated?.data?.[0] ?? null;
+    return saved.success ? saved.data : null;
   } catch (error) {
     console.error("Erro ao buscar taxa de câmbio:", error);
     return null;
