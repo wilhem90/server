@@ -13,15 +13,9 @@ router.get(
 );
 
 router.post(
-  "/create",
+  "/update-profile",
   middlewareAuthProfil.validateAuth,
-  companyController.createCompany,
-);
-
-router.get(
-  "/my-companies",
-  middlewareAuthProfil.validateAuth,
-  companyController.myCompanies,
+  companyController.updateProfile,
 );
 
 export default router;

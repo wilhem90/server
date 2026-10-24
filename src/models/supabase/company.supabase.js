@@ -1,41 +1,16 @@
 import supabase from "./conexion.js";
 
 const modelCompany = {
-  createCompany: async (profilData) => {
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: profilData.email.toLowerCase(),
-      password: profilData.password,
-      email_confirm: true,
-
-      user_metadata: {
-        phone: profilData.phone,
-        user_name: profilData.username.toLowerCase(),
-        full_name: profilData.fullname.toLowerCase(),
-        need_wallet: true,
-        type_profile: "company",
-        owner_id: profilData.user_id,
-        display_name: profilData.fullname.toLowerCase(),
-      },
-    });
+  updateProfile: async (user_id, profilData) => {
+    const { data, error } = await supabase.auth.admin.updateUserById(
+      user_id,
+      profilData,
+    );
 
     if (error) {
       throw new Error(error.message);
     }
 
-    return data;
-  },
-
-  myCompanies: async ({ user_id }) => {
-    const { data, error } = await supabase.rpc("get_my_companies", {
-      p_profile_id: user_id,
-    });
-
-    if (error) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
     return data;
   },
 
@@ -150,6 +125,8 @@ const modelCompany = {
         error: error.message,
       };
     }
+
+    console.log(data, error);
 
     return {
       success: true,

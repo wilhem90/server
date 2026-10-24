@@ -20,7 +20,7 @@ function maskDigits(value, start, end) {
 }
 
 const companyController = {
-  createCompany: async (req, res) => {
+  updateProfile: async (req, res) => {
     try {
       const { fullname, email, username, password, phone } = req.body;
       const fields = { fullname, email, username, password, phone };
@@ -37,9 +37,7 @@ const companyController = {
           .status(400)
           .json({ success: false, error: "Missing user ID" });
       }
-
-      const data = await modelCompany.createCompany({
-        user_id,
+      const data = await modelCompany.updateProfile(user_id, {
         fullname,
         email,
         username,
@@ -48,25 +46,7 @@ const companyController = {
       });
       res.json({ success: true, data });
     } catch (error) {
-      console.error("Error creating company:", error);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  },
-
-  //   Get My Companies
-  myCompanies: async (req, res) => {
-    try {
-      const { id: user_id, role } = req.user;
-      if (!user_id) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Missing user ID" });
-      }
-
-      const data = await modelCompany.myCompanies({ user_id });
-      res.json({ success: true, data });
-    } catch (error) {
-      console.error("Error fetching my companies:", error);
+      console.error("Error updating profile:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   },
@@ -220,6 +200,8 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
+      console.log(name, doc_id, phone);
+
       const cleanPhoneNumber = phone ? cleanPhone(phone) : null;
       const cleanDocId = doc_id ? validateCPF(doc_id) : null;
       if (doc_id && !cleanDocId) {
@@ -243,11 +225,11 @@ const companyController = {
       res.json({
         success: true,
         data: {
-          id: c.id,
-          client_name: c.client_name,
-          doc_id: maskDigits(c.doc_id, 3, 2),
-          phone: maskDigits(c.phone, 2, 2),
-          status: c.status,
+          id: client.data.id,
+          client_name: client.data.client_name,
+          doc_id: maskDigits(client.data.doc_id, 3, 2),
+          phone: maskDigits(client.data.phone, 2, 2),
+          status: client.data.status,
         },
       });
     } catch (error) {
