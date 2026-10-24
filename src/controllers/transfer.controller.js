@@ -3,6 +3,7 @@ import modelCompany from "../models/supabase/company.supabase.js";
 import supabase from "../models/supabase/conexion.js";
 import transferModel from "../models/supabase/transfer.supabase.js";
 import wallet_price_tiers from "../utils/generatePriceTiers.js";
+import validateCPF from "../utils/validateDoc.js";
 
 async function getCurrentWallet(req) {
   return await wallet_price_tiers.getConfigCost({
@@ -358,8 +359,14 @@ const controllerTransferMoney = {
 
         clientId = existingById.id;
       } else {
-        const normalizedDocId =
-          typeof doc_id === "string" ? doc_id.replace(/\D/g, "") : "";
+        const normalizedDocId = validateCPF(doc_id) || "";
+
+        if (!normalizedDocId) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid client document (CPF).",
+          });
+        }
 
         const normalizedClientName =
           typeof client_name === "string" ? client_name.trim() : "";
@@ -373,7 +380,7 @@ const controllerTransferMoney = {
 
         const { data: existingClient, error: findClientError } = await supabase
           .from("clients")
-          .select("id")
+          .select("id, inserted_by")
           .eq("doc_id", normalizedDocId)
           .maybeSingle();
 
@@ -386,7 +393,15 @@ const controllerTransferMoney = {
           });
         }
 
-        if (existingClient) {
+        // Role "user" may only edit clients it registered itself;
+        // for others' clients the existing record is reused unchanged.
+        const canEditClient =
+          existingClient &&
+          (user.type !== "user" || existingClient.inserted_by === user.id);
+
+        if (existingClient && !canEditClient) {
+          clientId = existingClient.id;
+        } else if (existingClient) {
           // Atualiza somente os dados do cliente.
           // Preserva inserted_by e created_at.
           const { data: updatedClient, error: updateClientError } =
@@ -447,31 +462,7 @@ const controllerTransferMoney = {
                 });
               }
 
-              const { data: updatedClient, error: retryUpdateError } =
-                await supabase
-                  .from("clients")
-                  .update({
-                    client_name: normalizedClientName,
-                    phone: phone_client ?? null,
-                    status: "active",
-                  })
-                  .eq("id", concurrentClient.id)
-                  .select("id")
-                  .single();
-
-              if (retryUpdateError) {
-                console.error(
-                  "Error updating concurrent client:",
-                  retryUpdateError,
-                );
-
-                return res.status(500).json({
-                  success: false,
-                  message: "Unable to update the existing client.",
-                });
-              }
-
-              clientId = updatedClient.id;
+              clientId = concurrentClient.id;
             } else {
               console.error("Error inserting client:", insertClientError);
 

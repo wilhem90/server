@@ -7,6 +7,18 @@ function cleanPhone(phone) {
   return String(phone ?? "").replace(/\D/g, "");
 }
 
+// Keeps only the first/last digits visible, e.g. 123*****45
+function maskDigits(value, start, end) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length <= start + end) return "*".repeat(digits.length);
+  return (
+    digits.slice(0, start) +
+    "*".repeat(digits.length - start - end) +
+    digits.slice(-end)
+  );
+}
+
 const companyController = {
   createCompany: async (req, res) => {
     try {
@@ -218,10 +230,26 @@ const companyController = {
         doc_id: cleanDocId,
         phone: cleanPhoneNumber,
       });
-      if (!client.success || !client.data) {
+      if (!client.success) {
         return res.status(400).json({ success: false, error: client.error });
       }
-      res.json({ success: true, data: client.data });
+      if (!client.data) {
+        return res.status(404).json({
+          success: false,
+          found: false,
+          error: "Client not found",
+        });
+      }
+      res.json({
+        success: true,
+        data: {
+          id: c.id,
+          client_name: c.client_name,
+          doc_id: maskDigits(c.doc_id, 3, 2),
+          phone: maskDigits(c.phone, 2, 2),
+          status: c.status,
+        },
+      });
     } catch (error) {
       console.error("Error fetching client:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -238,15 +266,8 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
-      if (!req.user?.wallet_id) {
-        return res
-          .status(403)
-          .json({ success: false, error: "User has no wallet" });
-      }
-
       const beneficiary = await modelCompany.getBeneficiary({
         account_number,
-        wallet_id: req.user.wallet_id,
       });
       if (!beneficiary.success || !beneficiary.data) {
         return res

@@ -115,10 +115,9 @@ const modelCompany = {
     };
   },
 
-  // Get the recipient last used with an account number in the wallet's transfers
-  getBeneficiary: async ({ account_number, wallet_id }) => {
+  // Get the recipient last used with an account number
+  getBeneficiary: async ({ account_number }) => {
     const { data, error } = await supabase.rpc("get_beneficiary", {
-      p_wallet_id: wallet_id,
       p_account_number: account_number,
     });
 
