@@ -38,7 +38,6 @@ const middlewareAuthProfil = {
 
       // Busca o perfil completo da aplicação
       const user = await profilModel.getProfileById(authUser.id);
-      console.log("Loaded user profile:", user);
 
       if (!user) {
         return res.status(500).json({

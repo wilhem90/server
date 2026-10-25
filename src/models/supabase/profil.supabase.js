@@ -1,4 +1,4 @@
-import supabase from "./conexion.js";
+import supabase, { createAuthClient } from "./conexion.js";
 
 const profilModel = {
   getProfileByUsername: async (username) => {
@@ -146,7 +146,7 @@ const profilModel = {
 
       const normalizedEmail = email.trim().toLowerCase();
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await createAuthClient().auth.signInWithPassword({
         email: normalizedEmail,
         password,
       });

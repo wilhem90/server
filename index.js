@@ -8,6 +8,7 @@ import companyRouter from "./src/routes/company.routes.js";
 import topupRouter from "./src/routes/topup.routes.js";
 import transferRouter from "./src/routes/transfer.routes.js";
 import walletRouter from "./src/routes/wallets.routes.js";
+import transactionsRouter from "./src/routes/transactions.routes.js";
 const app = express();
 app.use(express.json());
 
@@ -21,6 +22,7 @@ app.use("/api/companies", companyRouter);
 app.use("/api/topups", topupRouter);
 app.use("/api/transfers", transferRouter);
 app.use("/api/wallets", walletRouter);
+app.use("/api/transactions", transactionsRouter);
 
 app.use((_, res) => {
   res.status(404).json({ message: "Not Found" });

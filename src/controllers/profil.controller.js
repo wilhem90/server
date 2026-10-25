@@ -1,4 +1,4 @@
-import supabase from "../models/supabase/conexion.js";
+import supabase, { createAuthClient } from "../models/supabase/conexion.js";
 import profilModel from "../models/supabase/profil.supabase.js";
 
 const controlProfil = {
@@ -48,7 +48,7 @@ const controlProfil = {
       }
 
       email = profiles[0].email;
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await createAuthClient().auth.signInWithPassword({
         email,
         password,
       });
@@ -84,6 +84,27 @@ const controlProfil = {
         success: false,
         error: error.message,
       });
+    }
+  },
+  // Logout all profile sessions
+  logoutProfil: async (req, res) => {
+    try {
+      const access_token = req.headers.authorization?.split(" ")[1];
+      if (!access_token) {
+        return res.status(401).json({ success: false, error: "Unauthorized" });
+      }
+
+      const { error } = await supabase.auth.admin.signOut(access_token);
+      if (error) {
+        return res.status(400).json({ success: false, error: error.message });
+      }
+
+      res
+        .status(200)
+        .json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ success: false, error: error.message });
     }
   },
 

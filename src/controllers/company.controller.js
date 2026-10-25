@@ -200,7 +200,6 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
-      console.log(name, doc_id, phone);
 
       const cleanPhoneNumber = phone ? cleanPhone(phone) : null;
       const cleanDocId = doc_id ? validateCPF(doc_id) : null;
@@ -251,7 +250,7 @@ const companyController = {
       const beneficiary = await modelCompany.getBeneficiary({
         account_number,
       });
-      if (!beneficiary.success || !beneficiary.data) {
+      if (!beneficiary.success) {
         return res
           .status(400)
           .json({ success: false, error: beneficiary.error });
@@ -259,9 +258,9 @@ const companyController = {
       res.json({
         success: true,
         data: {
-          beneficiary_name: beneficiary.data.beneficiary_name,
-          account_number: beneficiary.data.account_number,
-          operator_name: beneficiary.data.operator_name,
+          beneficiary_name: beneficiary.data?.beneficiary_name,
+          account_number: beneficiary.data?.account_number,
+          operator_name: beneficiary.data?.operator_name,
         },
       });
     } catch (error) {

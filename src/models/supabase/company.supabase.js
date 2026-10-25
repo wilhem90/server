@@ -106,7 +106,7 @@ const modelCompany = {
 
     return {
       success: true,
-      data: data?.[0] ?? null,
+      data: data[0],
     };
   },
 

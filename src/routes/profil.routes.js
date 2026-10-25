@@ -6,11 +6,14 @@ const router = Router();
 
 router.post("/create-profil", controlProfil.createProfil);
 router.post("/login", controlProfil.loginProfil);
+router.post("/logout", middlewareAuthProfil.validateAuth, controlProfil.logoutProfil);
+
 router.get(
   "/me",
   middlewareAuthProfil.validateAuth,
   controlProfil.getProfileByUsername,
 );
+
 
 router.post(
   "/update-profile",

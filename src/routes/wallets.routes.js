@@ -10,28 +10,10 @@ router.get(
   controlWallets.getBalance,
 );
 
-router.post(
-  "/deposit",
-  middlewareAuthProfil.validateAuth,
-  controlWallets.deposit,
-);
-
 router.get(
   "/statements",
   middlewareAuthProfil.validateAuth,
   controlWallets.getStatements,
-);
-
-router.get(
-  "/transactions",
-  middlewareAuthProfil.validateAuth,
-  controlWallets.getTransactions,
-);
-
-router.post(
-  "/confirm_transaction",
-  middlewareAuthProfil.validateAuth,
-  controlWallets.confirmTransaction,
 );
 
 export default router;

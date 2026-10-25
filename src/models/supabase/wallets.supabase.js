@@ -67,30 +67,6 @@ const walletSupabase = {
     };
   },
 
-  // Deposit into a wallet. Uses an RPC for atomic increment (recommended).
-  createIntentTransaction: async (dataDeposit) => {
-    if (dataDeposit.amount <= 0) {
-      return { success: false, error: "Amount must be positive" };
-    }
-
-    if (!dataDeposit.wallet_id) {
-      return { success: false, error: "Wallet ID is required" };
-    }
-
-    const { data, error } = await supabase.rpc("create_intent_transaction", {
-      p_wallet_id: dataDeposit.wallet_id,
-      p_amount: dataDeposit.amount,
-      p_type: dataDeposit.type,
-      p_nature: dataDeposit.nature,
-      p_reference_id: dataDeposit.reference_id || null,
-      p_description: dataDeposit.description || null,
-    });
-
-    if (error) return { success: false, error };
-    console.log("createIntentTransaction result:", data, error);
-    return { success: true, ...data };
-  },
-
   // Get transactions for a wallet by wallet ID.
   getTransactions: async (wallet_id) => {
     if (!wallet_id) {

@@ -8,6 +8,7 @@ router.post(
   middlewareAuthProfil.validateAuth,
   companyController.createEmployee,
 );
+
 router.get(
   "/my-employees",
   middlewareAuthProfil.validateAuth,
@@ -30,6 +31,7 @@ router.get(
   middlewareAuthProfil.validateAuth,
   companyController.getClient,
 );
+
 router.get(
   "/get-beneficiary",
   middlewareAuthProfil.validateAuth,
