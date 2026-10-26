@@ -1,5 +1,6 @@
 import supabase, { createAuthClient } from "../models/supabase/conexion.js";
 import profilModel from "../models/supabase/profil.supabase.js";
+import bcrypt from "bcrypt";
 
 const controlProfil = {
   // Create a new profile
@@ -132,6 +133,65 @@ const controlProfil = {
       });
     } catch (error) {
       console.error("Error fetching profile by username:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  updateProfile: async (req, res) => {
+    try {
+      const validdFields = [
+        "fullname",
+        "username",
+        "pin_transaction",
+        "phone",
+      ];
+
+      // Get all valid fields from the request body if not empty
+      const dataFields = {};
+
+      validdFields.forEach((field) => {
+        if (req.body[field] !== undefined) {
+          dataFields[field] = req.body[field];
+        }
+      });
+
+      if (dataFields.pin_transaction) {
+        const pin_transaction = dataFields.pin_transaction;
+        const validatePin = pin_transaction && pin_transaction.length === 4;
+        if (!validatePin) {
+          return res.status(400).json({ success: false, error: "Invalid pin" });
+        }
+        dataFields.pin_transaction = bcrypt.hashSync(pin_transaction, 10);
+      }
+
+      if (dataFields.phone) {
+        dataFields.phone = dataFields.phone.trim();
+      }
+
+      if (dataFields.email) {
+        dataFields.email = dataFields.email.trim().toLowerCase();
+      }
+
+      if (dataFields.username) {
+        dataFields.username = dataFields.username.trim().toLowerCase();
+      }
+
+      if (dataFields.fullname) {
+        dataFields.fullname = dataFields.fullname.trim();
+      }
+
+      const { id: user_id } = req.user;
+      if (!user_id) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Missing user ID" });
+      }
+      const data = await profilModel.updateProfile(user_id, {
+        ...dataFields,
+      });
+      res.json({ success: true, data });
+    } catch (error) {
+      console.error("Error updating profile:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   },

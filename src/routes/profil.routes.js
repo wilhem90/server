@@ -15,10 +15,10 @@ router.get(
 );
 
 
-router.post(
+router.put(
   "/update-profile",
   middlewareAuthProfil.validateAuth,
-  companyController.updateProfile,
+  controlProfil.updateProfile,
 );
 
 export default router;

@@ -128,6 +128,29 @@ const profilModel = {
     }
   },
 
+  updateProfile: async (user_id, profileData) => {
+    console.log("Updating profile for user_id:", user_id);
+    console.log("Profile data to update:", profileData);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(profileData)
+        .eq("id", user_id);
+
+      if (error) {
+        console.error("[updateProfile] Supabase error:", error);
+        return null;
+      }
+
+      console.log(data);
+
+      return data || null;
+    } catch (error) {
+      console.error("[updateProfile] Unexpected error:", error);
+      return null;
+    }
+  },
+
   loginProfil: async ({ email, password }) => {
     try {
       if (!email) {
