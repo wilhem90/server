@@ -23,8 +23,6 @@ const controlTransactions = {
         reference_id,
         bar_code,
         digitable_line,
-        pix_copy_paste,
-        pix_end_to_end_id,
         validate_only = true,
       } = req.body;
       const amount = Number(a);
@@ -51,22 +49,7 @@ const controlTransactions = {
         });
       }
 
-      // If method equal pix
-      if (method === "pix" && !pix_copy_paste && !pix_end_to_end_id) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "For PIX transactions, either Pix_copy_paste or Pix_end_to_end_id is required.",
-        });
-      }
 
-      if (method === "bank_slip" && !bar_code && !digitable_line) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "For Bank_slip transactions, either Bar_code or Digitable_line is required.",
-        });
-      }
       // Generate a unique reference ID UUID for the transaction
       const ref_id = crypto.randomUUID();
 
@@ -80,8 +63,8 @@ const controlTransactions = {
         reference_id: reference_id || ref_id,
         bar_code,
         digitable_line,
-        pix_copy_paste,
-        pix_end_to_end_id,
+        pix_copy_paste: Math.random().toString(36).substring(2, 15),
+        pix_end_to_end_id: Math.random().toString(36).substring(2, 15),
         description: null,
       });
       if (!result?.success) {
