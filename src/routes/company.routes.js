@@ -44,4 +44,10 @@ router.get(
   companyController.getSettingsApp,
 );
 
+router.get(
+  "/pricing",
+  middlewareAuthProfil.validateAuth,
+  companyController.getPricing
+);
+
 export default router;

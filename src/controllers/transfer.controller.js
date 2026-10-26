@@ -161,7 +161,7 @@ const controllerTransferMoney = {
 
       if (
         pricingValues.some(
-          (value) => value === null || value === undefined || value === "",
+          (value) => value == null || value === "",
         )
       ) {
         return res.status(400).json({

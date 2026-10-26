@@ -13,8 +13,6 @@ const clientOptions = {
 
 const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
 
-// signInWithPassword stores the user's session in the client, which would replace
-// the secret key on later requests. Use a throwaway client for every login.
 export const createAuthClient = () =>
   createClient(supabaseUrl, supabaseKey, clientOptions);
 

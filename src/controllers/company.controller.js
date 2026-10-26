@@ -1,6 +1,7 @@
 import modelCompany from "../models/supabase/company.supabase.js";
 import validateCPF from "../utils/validateDoc.js";
 import handleExchangeRate from "../apis/exchangeRate.js";
+import wallet_price_tiers from "../utils/generatePriceTiers.js";
 
 // Remove non-digit characters from phone number
 function cleanPhone(phone) {
@@ -200,7 +201,6 @@ const companyController = {
           .json({ success: false, error: "Missing query parameters" });
       }
 
-
       const cleanPhoneNumber = phone ? cleanPhone(phone) : null;
       const cleanDocId = doc_id ? validateCPF(doc_id) : null;
       if (doc_id && !cleanDocId) {
@@ -284,6 +284,28 @@ const companyController = {
       res.json({ success: true, data });
     } catch (error) {
       console.error("Error fetching settings app:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  getPricing: async (req, res) => {
+    try {
+      const pricing = [];
+      const userId = req.user?.id;
+      const type = req.user?.type;
+      const codes = ["money_transfer", "topup"];
+      for (const code of codes) {
+        const config = await wallet_price_tiers.getConfigCost({
+          userId,
+          type,
+          code,
+        });
+        if (config) {
+          pricing.push({ code, config });
+        }
+      }
+      res.json({ success: true, data: pricing });
+    } catch (error) {
       res.status(500).json({ success: false, error: error.message });
     }
   },
