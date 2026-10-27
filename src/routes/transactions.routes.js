@@ -18,7 +18,7 @@ router.post(
 );
 
 router.post(
-  "/confirm_transaction",
+  "/confirm",
   middlewareAuthProfil.validateAuth,
   controlTransactions.confirmTransaction,
 );

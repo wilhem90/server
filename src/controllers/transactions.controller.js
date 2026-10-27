@@ -1,40 +1,19 @@
 import transactionSupabase from "../models/supabase/transactions.supabase.js";
 
-// p_account_number TEXT,
-// p_amount NUMERIC(18,2),
-// p_method transaction_method,
-// p_type transaction_type,
-// p_fee NUMERIC(15, 2) DEFAULT 0.00,
-// p_reference_id TEXT DEFAULT NULL,
-// p_bar_code TEXT DEFAULT NULL,
-// p_digitable_line TEXT DEFAULT NULL,
-// p_due_date DATE DEFAULT NULL,
-// p_pix_copy_paste TEXT DEFAULT NULL,
-// p_pix_end_to_end_id TEXT DEFAULT NULL
-
 const controlTransactions = {
   // Controller for handling wallet-related operations, such as deposits and balance inquiries.
   deposit: async (req, res) => {
     try {
       const {
-        account_number,
         amount: a,
         method,
         reference_id,
         bar_code,
         digitable_line,
-        validate_only = true,
       } = req.body;
       const amount = Number(a);
 
       // Validate required fields
-      if (!account_number) {
-        return res.status(400).json({
-          success: false,
-          message: "Account_number is required.",
-        });
-      }
-
       if (!Number.isFinite(amount) || amount <= 0 || amount > 5000) {
         return res.status(400).json({
           success: false,
@@ -49,7 +28,17 @@ const controlTransactions = {
         });
       }
 
+      const validate_only = !(
+        req.body.validate_only === false || req.body.validate_only === "false"
+      );
+      const account_number = req.user?.wallet_account_number;
 
+      if (!account_number) {
+        return res.status(400).json({
+          success: false,
+          message: "User has no wallet.",
+        });
+      }
       // Generate a unique reference ID UUID for the transaction
       const ref_id = crypto.randomUUID();
 
@@ -90,87 +79,14 @@ const controlTransactions = {
     }
   },
 
+  // Withdrawals are not implemented yet: the SQL function only supports
+  // deposits, and no wallet lookup exists in this module.
   withdraw: async (req, res) => {
-    try {
-      const { account_number, validate_only, email } = req.body;
-      const amount = Number(req.body.amount);
-
-      if (!["company", "owner", "admin"].includes(req.user?.type)) {
-        return res.status(403).json({
-          success: false,
-          message: "Unauthorized role.",
-        });
-      }
-      if (
-        (!account_number && !email) ||
-        !Number.isFinite(amount) ||
-        amount <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "account_number or email and a positive amount are required.",
-        });
-      }
-
-      const wallet = await transactionSupabase.getWalletByAccount({
-        account_number,
-        email,
-      });
-      if (!wallet?.success || !wallet?.account_number) {
-        return res.status(404).json({
-          success: false,
-          message: "Wallet not found.",
-        });
-      }
-
-      if (validate_only === true || validate_only === "true") {
-        return res.status(200).json({
-          success: true,
-          data: {
-            account_number: wallet.account_number,
-            active: wallet.active,
-            full_name: wallet.full_name,
-            profile_id: wallet.profile_id,
-          },
-        });
-      }
-
-      const result = await transactionSupabase.createIntentTransaction({
-        wallet_id: wallet.wallet_id,
-        amount,
-        type: "withdraw",
-        nature: "debit",
-        reference_id: null,
-        description: null,
-      });
-      if (!result?.success) {
-        return res.status(400).json({
-          success: false,
-          message: result?.error || "Error processing withdrawal.",
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: "Withdrawal successful.",
-        data: {
-          id: result?.data?.id,
-          account_number: wallet.account_number,
-          active: wallet.active,
-          full_name: wallet.full_name,
-          profile_id: wallet.profile_id,
-        },
-      });
-    } catch (error) {
-      console.error("[CreateIntentTransactionTransaction]", error);
-      return res.status(400).json({
-        success: false,
-        message: error?.message || "Error processing withdrawal.",
-      });
-    }
+    return res.status(501).json({
+      success: false,
+      message: "Withdrawals are not implemented yet.",
+    });
   },
-
   // Controller for handling wallet transaction confirmations.
   confirmTransaction: async (req, res) => {
     try {
@@ -180,6 +96,7 @@ const controlTransactions = {
           message: "Unauthorized role to confirm transactions.",
         });
       }
+
       const { transaction_id } = req.body;
       if (!transaction_id) {
         return res.status(400).json({
@@ -191,10 +108,11 @@ const controlTransactions = {
       const result = await transactionSupabase.confirmTransaction({
         transaction_id,
       });
+
       if (!result?.success) {
         return res.status(400).json({
           success: false,
-          message: result?.error.message || "Error confirming transaction.",
+          message: result?.error || "Error confirming transaction.",
         });
       }
 
