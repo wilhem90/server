@@ -22,8 +22,8 @@ router.get(
 router.post(
   "/send",
   middlewareAuthProfil.validateAuth,
-  // (req, res, next) =>
-  //   middlewareAuthProfil.checkPermission(req, res, next, "topup", "write"),
+  (req, res, next) =>
+    middlewareAuthProfil.checkPermission(req, res, next, "topup", "write"),
   controlTopup.SendTopup,
 );
 
@@ -42,6 +42,8 @@ router.get(
 router.post(
   "/reconcile",
   middlewareAuthProfil.validateAuth,
+  (req, res, next) =>
+    middlewareAuthProfil.checkPermission(req, res, next, "topup", "update"),
   controlTopup.reconcileTopups,
 );
 

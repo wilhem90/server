@@ -90,12 +90,6 @@ const controlTransactions = {
   // Controller for handling wallet transaction confirmations.
   confirmTransaction: async (req, res) => {
     try {
-      if (req.user?.type !== "superadmin") {
-        return res.status(403).json({
-          success: false,
-          message: "Unauthorized role to confirm transactions.",
-        });
-      }
 
       const { transaction_id } = req.body;
       if (!transaction_id) {
@@ -108,6 +102,8 @@ const controlTransactions = {
       const result = await transactionSupabase.confirmTransaction({
         transaction_id,
       });
+
+      console.log(result);
 
       if (!result?.success) {
         return res.status(400).json({

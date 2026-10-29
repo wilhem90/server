@@ -159,11 +159,7 @@ const controllerTransferMoney = {
         fee_provider,
       ];
 
-      if (
-        pricingValues.some(
-          (value) => value == null || value === "",
-        )
-      ) {
+      if (pricingValues.some((value) => value == null || value === "")) {
         return res.status(400).json({
           success: false,
           message: "Wallet pricing configuration is incomplete.",
@@ -590,7 +586,7 @@ const controllerTransferMoney = {
       } = req.query;
 
       for (const d of [startDate, endDate]) {
-        if (d && Number.isNaN(new Date(d).getTime())) {
+        if (!d) {
           return res.status(400).json({
             success: false,
             message: "Invalid date filter.",

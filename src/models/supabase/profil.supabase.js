@@ -129,8 +129,6 @@ const profilModel = {
   },
 
   updateProfile: async (user_id, profileData) => {
-    console.log("Updating profile for user_id:", user_id);
-    console.log("Profile data to update:", profileData);
     try {
       const { data, error } = await supabase
         .from("profiles")

@@ -56,6 +56,8 @@ const middlewareAuthProfil = {
       // Disponibiliza o usuário autenticado para as próximas rotas
       req.user = user[0];
 
+      console.log(user);
+
       // Também pode ser útil guardar o usuário original do Supabase
       req.authUser = authUser;
 
@@ -73,7 +75,6 @@ const middlewareAuthProfil = {
   checkPermission: async (req, res, next, source, action) => {
     const userType = req.user?.type;
     const permission = await profilModel.getPermissionsByRole(userType);
-    console.log("User permissions:", permission);
     if (!permission?.[source]?.[action]) {
       return res.status(403).json({
         success: false,

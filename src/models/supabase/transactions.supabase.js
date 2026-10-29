@@ -47,6 +47,8 @@ const transactionSupabase = {
       p_transaction_id: dataConfirm.transaction_id,
     });
 
+    console.log(data, error);
+
     if (error) {
       return { success: false, error: error.message };
     }

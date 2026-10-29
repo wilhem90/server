@@ -3,6 +3,12 @@ import supabase from "./conexion.js";
 
 const modelTopup = {
   createTopup: async (dataTopup, profile_type) => {
+    console.log(
+      "Creating topup with data:",
+      dataTopup,
+      "profile_type:",
+      profile_type,
+    );
     // Always a dry run: the real transfer is only sent after the wallet debit.
     const validate_received_value = await requestDing("SendTransfer", "POST", {
       SkuCode: dataTopup.sku_code,
@@ -49,6 +55,7 @@ const modelTopup = {
       p_send_value: dataTopup.send_value,
       p_account_number: dataTopup.account_number,
       p_operator_name: dataTopup.operator_name,
+      p_pin_transaction: dataTopup.pin_transaction,
       p_send_currency: dataTopup.send_currency,
       p_transfer_id: dataTopup.transfer_id ?? null,
       p_received_currency: dataTopup.received_currency,
@@ -93,7 +100,11 @@ const modelTopup = {
       (responseDing?.status == null || responseDing.status >= 500);
 
     if (outcomeUnknown) {
-      console.error("[createTopup] Unknown Ding outcome for", topup.id, responseDing);
+      console.error(
+        "[createTopup] Unknown Ding outcome for",
+        topup.id,
+        responseDing,
+      );
       return {
         success: false,
         error: `Top-up ${topup.id} is pending manual review.`,
@@ -141,7 +152,11 @@ const modelTopup = {
 
     if (updateError) {
       // Ding already accepted the transfer, so reporting failure would invite a retry and a double charge.
-      console.error("[createTopup] Ding accepted but DB update failed", topup.id, updateError);
+      console.error(
+        "[createTopup] Ding accepted but DB update failed",
+        topup.id,
+        updateError,
+      );
       return {
         success: true,
         data: {
@@ -162,7 +177,7 @@ const modelTopup = {
 
   // Re-check "processing" top-ups (and stale "pending" ones left by an unknown
   // Ding outcome) against DingConnect and settle them.
-  reconcileTopups: async ({ pendingOlderThanMinutes = 10, limit = 50 } = {}) => {
+  reconcileTopups: async ({ limit = 50 } = {}) => {
     const { data: processing, error } = await supabase
       .from("topups")
       .select("id, status")
@@ -171,15 +186,10 @@ const modelTopup = {
 
     if (error) return { success: false, error: error.message };
 
-    const cutoff = new Date(
-      Date.now() - pendingOlderThanMinutes * 60 * 1000,
-    ).toISOString();
-
     const { data: pending, error: pendingError } = await supabase
       .from("topups")
       .select("id, status")
       .eq("status", "pending")
-      .lt("created_at", cutoff)
       .limit(limit);
 
     if (pendingError) {
@@ -194,8 +204,9 @@ const modelTopup = {
         Take: 1,
       });
 
-      const record = ding?.data?.Items?.[0] ?? ding?.data?.TransferRecords?.[0];
-      const state = record?.ProcessingState;
+      const record = ding?.data?.Items?.[0];
+      const state = record?.TransferRecord?.ProcessingState;
+
 
       if (!ding?.success || !record || !state) {
         // Nothing to act on: a missing record may only mean Ding has not indexed it yet.
@@ -207,15 +218,19 @@ const modelTopup = {
         const { error: updateError } = await supabase
           .from("topups")
           .update({
-            status: "complete",
-            transfer_id: record.TransferId?.TransferRef,
+            status: "completed",
+            transfer_id: record?.TransferRecord?.TransferId?.TransferRef,
           })
           .eq("id", topup.id);
 
-        results.push({
-          id: topup.id,
-          action: updateError ? "update_failed" : "complete",
-        });
+
+        if (updateError) {
+          console.error(`Failed to update top-up ${topup.id}:`, updateError);
+          results.push({
+            id: topup.id,
+            action: updateError ? "update_failed" : "complete",
+          });
+        }
       } else if (state === "Failed" || state === "Cancelled") {
         const { error: refundError } = await supabase.rpc("refund_topup", {
           p_topup_id: topup.id,

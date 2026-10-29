@@ -4,7 +4,6 @@ import middlewareAuthProfil from "../middleware/auth.profil.js";
 
 const router = express.Router();
 
-
 router.post(
   "/deposit",
   middlewareAuthProfil.validateAuth,
@@ -20,6 +19,14 @@ router.post(
 router.post(
   "/confirm",
   middlewareAuthProfil.validateAuth,
+  (req, res, next) =>
+    middlewareAuthProfil.checkPermission(
+      req,
+      res,
+      next,
+      "transactions",
+      "confirm",
+    ),
   controlTransactions.confirmTransaction,
 );
 
