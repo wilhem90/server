@@ -451,7 +451,6 @@ const controlTopup = {
         send_value_net: calculatedSendValue.toFixed(2),
         account_number: accountNumber,
         operator_name: operatorName,
-        pin_transaction: pinTransaction,
         send_currency: sendCurrencyIso,
         received_currency: receiveCurrencyIso,
         fee: fee.toFixed(2),
@@ -482,28 +481,28 @@ const controlTopup = {
         });
       }
 
-      if (!validateOnly) {
-        if (!pinTransaction) {
-          return res.status(400).json({
-            success: false,
-            message: "PIN transaction is required.",
-            data: dataTopup,
-          });
-        }
+      // if (!validateOnly) {
+      //   if (!pinTransaction) {
+      //     return res.status(400).json({
+      //       success: false,
+      //       message: "PIN transaction is required.",
+      //       data: dataTopup,
+      //     });
+      //   }
 
-        // Validate PIN transaction for non-validate-only requests
-        const isPinValid = bcrypt.compareSync(
-          pinTransaction,
-          currentActorPinHash,
-        );
-        if (!isPinValid) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid PIN transaction.",
-            data: dataTopup,
-          });
-        }
-      }
+      //   // Validate PIN transaction for non-validate-only requests
+      //   const isPinValid = bcrypt.compareSync(
+      //     pinTransaction,
+      //     currentActorPinHash,
+      //   );
+      //   if (!isPinValid) {
+      //     return res.status(400).json({
+      //       success: false,
+      //       message: "Invalid PIN transaction.",
+      //       data: dataTopup,
+      //     });
+      //   }
+      // }
 
       const amountOfDing = await modelTopup.createTopup(
         dataTopup,
