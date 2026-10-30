@@ -100,6 +100,8 @@ const profilModel = {
         },
       });
 
+      console.log(data, error);
+
       if (error) {
         console.error("[createProfil] Supabase error:", error);
 

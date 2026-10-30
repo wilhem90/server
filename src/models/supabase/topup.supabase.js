@@ -3,12 +3,7 @@ import supabase from "./conexion.js";
 
 const modelTopup = {
   createTopup: async (dataTopup, profile_type) => {
-    console.log(
-      "Creating topup with data:",
-      dataTopup,
-      "profile_type:",
-      profile_type,
-    );
+   
     // Always a dry run: the real transfer is only sent after the wallet debit.
     const validate_received_value = await requestDing("SendTransfer", "POST", {
       SkuCode: dataTopup.sku_code,
