@@ -50,7 +50,6 @@ const modelTopup = {
       p_send_value: dataTopup.send_value,
       p_account_number: dataTopup.account_number,
       p_operator_name: dataTopup.operator_name,
-      p_pin_transaction: dataTopup.pin_transaction,
       p_send_currency: dataTopup.send_currency,
       p_transfer_id: dataTopup.transfer_id ?? null,
       p_received_currency: dataTopup.received_currency,
