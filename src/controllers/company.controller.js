@@ -309,6 +309,42 @@ const companyController = {
       res.status(500).json({ success: false, error: error.message });
     }
   },
+
+  registerPricing: async (req, res) => {
+    try {
+      const { topup, money_transfer } = req.body;
+      if (!topup && !money_transfer) {
+        return res
+          .status(400)
+          .json({ success: false, error: "No pricing data provided." });
+      }
+      const userId = req.user?.id;
+
+      const pricingResults = [];
+      const codes = ["topup", "money_transfer"];
+      for (const code of codes) {
+        const config = req.body[code];
+        if (config) {
+          const result = await wallet_price_tiers.registerPricing(
+            userId,
+            code,
+            {
+              max_value: config.max_value,
+              min_value: config.min_value,
+              price_step: config.price_step,
+              start_percent: config.start_percent,
+              end_percent: config.end_percent,
+              fee_fixed: config.fee_fixed,
+            },
+          );
+          pricingResults.push({ ...result.data[0] });
+        }
+      }
+      return res.json({ success: true, data: pricingResults });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
 };
 
 export default companyController;

@@ -31,6 +31,32 @@ const wallet_price_tiers = {
     console.log("generatePriceTiers", data, error);
     return data;
   },
+
+  registerPricing: async (userId, code, config) => {
+    console.log("registerPricing", { userId, code, config });
+    const { data, error } = await supabase
+      .from("company_pricing_rules")
+      .upsert(
+        {
+          company_id: userId,
+          service_code: code,
+          max_value: config.max_value,
+          min_value: config.min_value,
+          price_step: config.price_step,
+          start_percent: config.start_percent,
+          end_percent: config.end_percent,
+          fee_fixed: config.fee_fixed,
+          fee_provider: config.fee_provider,
+        },
+        { onConflict: ["company_id", "service_code"] },
+      )
+      .select();
+    if (error) {
+      console.error("Error registering pricing:", error.message);
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  },
 };
 
 export default wallet_price_tiers;

@@ -47,7 +47,15 @@ router.get(
 router.get(
   "/pricing",
   middlewareAuthProfil.validateAuth,
-  companyController.getPricing
+  companyController.getPricing,
+);
+
+router.post(
+  "/register-pricing",
+  middlewareAuthProfil.validateAuth,
+  (req, res, next) =>
+    middlewareAuthProfil.checkPermission(req, res, next, "pricing", "update"),
+  companyController.registerPricing,
 );
 
 export default router;
