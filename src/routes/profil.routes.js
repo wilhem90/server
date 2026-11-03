@@ -1,6 +1,5 @@
 import { Router } from "express";
 import controlProfil from "../controllers/profil.controller.js";
-import companyController from "../controllers/company.controller.js";
 import middlewareAuthProfil from "../middleware/auth.profil.js";
 const router = Router();
 

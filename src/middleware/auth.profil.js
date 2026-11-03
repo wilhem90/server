@@ -56,8 +56,6 @@ const middlewareAuthProfil = {
       // Disponibiliza o usuário autenticado para as próximas rotas
       req.user = user[0];
 
-      console.log(user);
-
       // Também pode ser útil guardar o usuário original do Supabase
       req.authUser = authUser;
 
