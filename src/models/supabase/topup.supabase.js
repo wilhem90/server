@@ -3,7 +3,6 @@ import supabase from "./conexion.js";
 
 const modelTopup = {
   createTopup: async (dataTopup, profile_type) => {
-   
     // Always a dry run: the real transfer is only sent after the wallet debit.
     const validate_received_value = await requestDing("SendTransfer", "POST", {
       SkuCode: dataTopup.sku_code,
@@ -133,7 +132,7 @@ const modelTopup = {
       };
     }
 
-    const finalStatus = dingState === "Complete" ? "complete" : "processing";
+    const finalStatus = dingState === "Complete" ? "completed" : "processing";
 
     const { data: updatedTopup, error: updateError } = await supabase
       .from("topups")
@@ -194,13 +193,12 @@ const modelTopup = {
 
     for (const topup of [...(processing || []), ...(pending || [])]) {
       const ding = await requestDing("ListTransferRecords", "POST", {
-        DistributorRef: String(topup.id),
+        DistributorRef: String(topup.transfer_id),
         Take: 1,
       });
 
       const record = ding?.data?.Items?.[0];
       const state = record?.TransferRecord?.ProcessingState;
-
 
       if (!ding?.success || !record || !state) {
         // Nothing to act on: a missing record may only mean Ding has not indexed it yet.
@@ -216,7 +214,6 @@ const modelTopup = {
             transfer_id: record?.TransferRecord?.TransferId?.TransferRef,
           })
           .eq("id", topup.id);
-
 
         if (updateError) {
           console.error(`Failed to update top-up ${topup.id}:`, updateError);
