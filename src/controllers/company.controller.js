@@ -91,6 +91,55 @@ const companyController = {
     }
   },
 
+  updateEmployee: async (req, res) => {
+    try {
+      const { id: employee_id } = req.params;
+      const { id: company_id, type } = req.user;
+      if (!company_id || type !== "company") {
+        return res.status(400).json({
+          success: false,
+          error: "Missing company ID or user is not a company.",
+        });
+      }
+
+      if (!employee_id) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing employee ID.",
+        });
+      }
+
+      // check fields permit
+      const allowedFields = ["active", "fullname", "username", "phone"];
+      for (const key of Object.keys(req.body)) {
+        if (!allowedFields.includes(key)) {
+          return res.status(400).json({
+            success: false,
+            error: `Field not allowed: ${key}`,
+          });
+        }
+      }
+
+      const newData = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) {
+          newData[key] = req.body[key];
+        }
+      }
+
+      const data = await modelCompany.updateEmployee(employee_id, company_id, {
+        ...newData,
+      });
+
+      return res.status(200).json({
+        success: true,
+        ...data,
+      });
+    } catch (error) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
   myEmployees: async (req, res) => {
     try {
       const { id: company_id, type } = req.user;
@@ -111,28 +160,6 @@ const companyController = {
     } catch (error) {
       console.error("Error fetching my employees:", error);
       res.status(500).json({ success: false, error: error.message });
-    }
-  },
-
-  //   Update Employee
-  updateEmployee: async (req, res) => {
-    try {
-      const { id: employee_id } = req.params;
-      const { id: company_id, type } = req.user;
-      if (!company_id || type !== "company" || !employee_id) {
-        return res.status(400).json({
-          success: false,
-          error:
-            "Missing company ID, user is not a company, or missing employee ID",
-        });
-      }
-
-      return res.status(501).json({
-        success: false,
-        error: "Employee update is not implemented yet",
-      });
-    } catch (error) {
-      return res.status(500).json({ success: false, error: error.message });
     }
   },
 

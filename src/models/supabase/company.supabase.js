@@ -1,19 +1,6 @@
 import supabase from "./conexion.js";
 
 const modelCompany = {
-  updateProfile: async (user_id, profilData) => {
-    const { data, error } = await supabase.auth.admin.updateUserById(
-      user_id,
-      profilData,
-    );
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return data;
-  },
-
   //   Create Employee by company
   createEmployee: async (employeeData) => {
     const { data, error } = await supabase.auth.admin.createUser({
@@ -41,6 +28,34 @@ const modelCompany = {
       data,
     };
   },
+  updateEmployee: async (employee_id, company_id, employeeData) => {
+    await supabase.auth.admin.updateUserById(employee_id, {
+      user_metadata: {
+        ...employeeData,
+      },
+    });
+    const { data, error } = await supabase
+      .from("company_members")
+      .update({
+        ...employeeData,
+      })
+      .eq("profile_id", employee_id)
+      .eq("company_id", company_id)
+      .select();
+
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return {
+      success: true,
+      data,
+    };
+  },
 
   myEmployees: async ({ company_id }) => {
     const { data, error } = await supabase.rpc("company_members", {
@@ -54,8 +69,6 @@ const modelCompany = {
         error: error.message,
       };
     }
-
-    console.log(data);
 
     return {
       success: true,
@@ -125,8 +138,6 @@ const modelCompany = {
         error: error.message,
       };
     }
-
-    console.log(data, error);
 
     return {
       success: true,

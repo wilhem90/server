@@ -100,8 +100,6 @@ const profilModel = {
         },
       });
 
-      console.log(data, error);
-
       if (error) {
         console.error("[createProfil] Supabase error:", error);
 
@@ -141,8 +139,6 @@ const profilModel = {
         console.error("[updateProfile] Supabase error:", error);
         return null;
       }
-
-      console.log(data);
 
       return data || null;
     } catch (error) {
