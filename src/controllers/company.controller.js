@@ -55,11 +55,11 @@ const companyController = {
   //   Create Employee
   createEmployee: async (req, res) => {
     try {
-      const { fullname, email, username, password, phone, role_id } = req.body;
+      const { fullname, email, username, phone } = req.body;
       const fields = {
-        fullname,
+        full_name: fullname,
         email,
-        username,
+        user_name: username,
         phone,
       };
       for (const [key, value] of Object.entries(fields)) {
@@ -78,9 +78,9 @@ const companyController = {
         });
       }
       const data = await modelCompany.createEmployee({
-        fullname,
+        full_name: fullname,
         email,
-        username,
+        user_name: username,
         phone: cleanPhone(phone),
         company_id,
       });
@@ -109,26 +109,15 @@ const companyController = {
         });
       }
 
-      // check fields permit
-      const allowedFields = ["active", "fullname", "username", "phone"];
-      for (const key of Object.keys(req.body)) {
-        if (!allowedFields.includes(key)) {
-          return res.status(400).json({
-            success: false,
-            error: `Field not allowed: ${key}`,
-          });
-        }
-      }
-
-      const newData = {};
-      for (const key of allowedFields) {
-        if (req.body[key] !== undefined) {
-          newData[key] = req.body[key];
-        }
+      if (!req.body.status) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing status field.",
+        });
       }
 
       const data = await modelCompany.updateEmployee(employee_id, company_id, {
-        ...newData,
+        status: req.body.status,
       });
 
       return res.status(200).json({

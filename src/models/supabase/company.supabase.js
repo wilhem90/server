@@ -29,11 +29,7 @@ const modelCompany = {
     };
   },
   updateEmployee: async (employee_id, company_id, employeeData) => {
-    await supabase.auth.admin.updateUserById(employee_id, {
-      user_metadata: {
-        ...employeeData,
-      },
-    });
+
     const { data, error } = await supabase
       .from("company_members")
       .update({
@@ -42,7 +38,6 @@ const modelCompany = {
       .eq("profile_id", employee_id)
       .eq("company_id", company_id)
       .select();
-
 
     if (error) {
       return {
