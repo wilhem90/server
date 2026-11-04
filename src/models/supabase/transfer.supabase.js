@@ -1,7 +1,44 @@
 import supabase from "./conexion.js";
+import bcrypt from "bcrypt";
 
 const transferModel = {
   createTransfer: async (dataTransfer) => {
+    const { data: existingData, error: existingError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", dataTransfer.actorId);
+
+    if (existingError) {
+      return {
+        success: false,
+        error: existingError,
+      };
+    }
+
+    if (!existingData || existingData.length === 0) {
+      return {
+        success: false,
+        error: "Actor not found",
+      };
+    }
+
+    if (dataTransfer.pin_transaction == null) {
+      return {
+        success: false,
+        error: "PIN is required",
+      };
+    }
+
+    const isPinMatch = bcrypt.compareSync(
+      String(dataTransfer.pin_transaction),
+      existingData[0].pin_transaction,
+    );
+    if (!isPinMatch) {
+      return {
+        success: false,
+        error: "Invalid PIN",
+      };
+    }
     const { data, error } = await supabase.rpc("create_transfer", {
       p_wallet_id: dataTransfer.walletId,
       p_created_by: dataTransfer.actorId,
@@ -23,7 +60,7 @@ const transferModel = {
     if (error) {
       return {
         success: false,
-        error,
+        error: error.message,
       };
     }
 
@@ -60,7 +97,7 @@ const transferModel = {
     if (error) {
       return {
         success: false,
-        error,
+        error: error.message,
       };
     }
 
@@ -79,7 +116,7 @@ const transferModel = {
     if (error) {
       return {
         success: false,
-        error,
+        error: error.message,
       };
     }
 

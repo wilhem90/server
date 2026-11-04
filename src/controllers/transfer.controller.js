@@ -81,6 +81,7 @@ const controllerTransferMoney = {
         account_number,
         operator_name,
         sendValue: rawSendValue,
+        pin_transaction,
       } = req.body;
 
       const { user } = req;
@@ -505,6 +506,7 @@ const controllerTransferMoney = {
         walletId: user.wallet_id,
         profileId: user.id,
         actorId: user.id,
+        pin_transaction,
         doc_id: doc_id ? String(doc_id).replace(/\D/g, "") : null,
         client_name: client_name ?? null,
         client_id: clientId,
@@ -524,11 +526,9 @@ const controllerTransferMoney = {
       });
 
       if (!transfer?.success || !transfer?.data?.id) {
-        console.error("Error creating transfer:", transfer?.error);
-
-        return res.status(500).json({
+        return res.status(400).json({
           success: false,
-          message: transfer?.error?.message || "Failed to create the transfer.",
+          message: transfer?.error || "Failed to create the transfer.",
         });
       }
 
