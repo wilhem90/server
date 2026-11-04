@@ -70,9 +70,11 @@ const controlProfil = {
         });
       }
 
+      const response = await profilModel.getProfileById(data.user.id);
+
       return res.json({
         success: true,
-        user: { ...data.user.user_metadata },
+        user: { ...response[0] },
         access_token: data.session.access_token,
         refresh_token: data.session.refresh_token,
         expires_at: data.session.expires_at,
@@ -139,12 +141,7 @@ const controlProfil = {
 
   updateProfile: async (req, res) => {
     try {
-      const validdFields = [
-        "fullname",
-        "username",
-        "pin_transaction",
-        "phone",
-      ];
+      const validdFields = ["fullname", "username", "pin_transaction", "phone"];
 
       // Get all valid fields from the request body if not empty
       const dataFields = {};
