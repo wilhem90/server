@@ -281,6 +281,22 @@ const controllerTransferMoney = {
         });
       }
 
+      // Verificar se client_name é texto válido ou um numero de celular remove all digits
+      if (
+        typeof client_name !== "string" ||
+        client_name.trim() === "" ||
+        typeof client_name !== "string" ||
+        !(
+          /^[A-Za-zÀ-ÿ\s]+$/.test(client_name) ||
+          !isNaN(Number(client_name.replaceAll(/\D/g, "")))
+        )
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid client name.",
+        });
+      }
+
       // ========================================================
       // 6. VALIDAR DADOS DA TRANSFERÊNCIA
       // ========================================================
