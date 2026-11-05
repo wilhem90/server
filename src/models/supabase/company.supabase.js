@@ -29,6 +29,13 @@ const modelCompany = {
     };
   },
   updateEmployee: async (employee_id, company_id, employeeData) => {
+    const { data: existingData, error: existingError } =
+      await supabase.auth.admin.updateUserById(employee_id, {
+        user_metadata: {
+          ...employeeData,
+          active: true,
+        },
+      });
 
     const { data, error } = await supabase
       .from("company_members")

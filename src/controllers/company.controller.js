@@ -116,12 +116,12 @@ const companyController = {
         });
       }
 
-      if (employee_id === company_id) {
-        return res.status(400).json({
-          success: false,
-          error: "Employee ID cannot be the same as company ID.",
-        });
-      }
+      // if (employee_id === company_id) {
+      //   return res.status(400).json({
+      //     success: false,
+      //     error: "Employee ID cannot be the same as company ID.",
+      //   });
+      // }
 
       const data = await modelCompany.updateEmployee(employee_id, company_id, {
         status: req.body.status,

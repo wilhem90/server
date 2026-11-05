@@ -595,47 +595,107 @@ const controllerTransferMoney = {
       const { user } = req;
       const {
         clientId,
-        limit = 50,
-        offset = 0,
+        limit = "50",
+        offset = "0",
         startDate,
         endDate,
       } = req.query;
 
-      for (const d of [startDate, endDate]) {
-        if (!d) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid date filter.",
-          });
+      const parseDate = (value, endOfDay = false) => {
+        if (!value) return null;
+
+        const match = /^(\d{2})-(\d{2})-(\d{4})$/.exec(value);
+        if (!match) return null;
+
+        const [, day, month, year] = match;
+        const date = new Date(
+          Date.UTC(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            endOfDay ? 23 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 999 : 0,
+          ),
+        );
+
+        // Rejeita datas impossíveis, como 31-02-2026
+        if (
+          date.getUTCDate() !== Number(day) ||
+          date.getUTCMonth() !== Number(month) - 1 ||
+          date.getUTCFullYear() !== Number(year)
+        ) {
+          return null;
         }
+
+        return date.toISOString();
+      };
+
+      const parsedStartDate = parseDate(startDate);
+      const parsedEndDate = parseDate(endDate, true);
+
+      if ((startDate && !parsedStartDate) || (endDate && !parsedEndDate)) {
+        return res.status(400).json({
+          success: false,
+          message: "Data inválida. Use o formato DD-MM-YYYY.",
+        });
       }
+
+      if (
+        parsedStartDate &&
+        parsedEndDate &&
+        new Date(parsedStartDate) > new Date(parsedEndDate)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "A data inicial não pode ser posterior à data final.",
+        });
+      }
+
+      const parsedLimit = Number.parseInt(limit, 10);
+      const parsedOffset = Number.parseInt(offset, 10);
+
+      const safeLimit = Math.min(
+        Math.max(Number.isNaN(parsedLimit) ? 50 : parsedLimit, 1),
+        200,
+      );
+
+      const safeOffset = Math.max(
+        Number.isNaN(parsedOffset) ? 0 : parsedOffset,
+        0,
+      );
 
       const transfers = await transferModel.getTransfers({
         walletId: user.wallet_id,
         employeeId: user.id,
-        clientId,
-        limit: Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200),
-        offset: Math.max(parseInt(offset, 10) || 0, 0),
-        startDate,
-        endDate,
+        clientId: clientId || null,
+        limit: safeLimit,
+        offset: safeOffset,
+        startDate: parsedStartDate,
+        endDate: parsedEndDate,
       });
 
       if (!transfers.success) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
-          message: transfers.message || "Nenhuma transferência encontrada",
+          message:
+            transfers.error ||
+            transfers.message ||
+            "Erro ao buscar transferências.",
         });
       }
 
       return res.status(200).json({
         success: true,
-        transfers: transfers.data,
+        transfers: transfers.data ?? [],
       });
     } catch (error) {
       console.error("Erro ao buscar transferências:", error);
+
       return res.status(500).json({
         success: false,
-        message: error.message,
+        message: error.message || "Erro interno ao buscar transferências.",
       });
     }
   },

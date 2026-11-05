@@ -74,37 +74,89 @@ const transferModel = {
     walletId,
     employeeId,
     clientId,
-    limit = 50,
+    limit = 100,
     offset = 0,
     startDate,
     endDate,
-  }) => {
-    const end_date = endDate ? new Date(endDate) : new Date();
-    const start_date = startDate
-      ? new Date(startDate)
-      : new Date(end_date.getTime() - 30 * 24 * 60 * 60 * 1000);
+  } = {}) => {
+    try {
+      if (!walletId && !employeeId && !clientId) {
+        return {
+          success: false,
+          error:
+            "Informe ao menos um filtro: carteira, funcionário ou cliente.",
+        };
+      }
 
-    const { data, error } = await supabase.rpc("get_transfers", {
-      p_wallet_id: walletId,
-      p_employee_id: employeeId,
-      p_client_id: clientId,
-      p_limit: limit,
-      p_offset: offset,
-      p_start_date: start_date,
-      p_end_date: end_date,
-    });
+      const parseDate = (value, label) => {
+        if (value == null || value === "") return null;
 
-    if (error) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          throw new Error(`${label} inválida.`);
+        }
+
+        return date.toISOString();
+      };
+
+      const p_end_date = parseDate(endDate, "Data final");
+      const p_start_date =
+        parseDate(startDate, "Data inicial") ??
+        new Date(
+          (p_end_date ? new Date(p_end_date) : new Date()).getTime() -
+            30 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+
+      if (p_end_date && new Date(p_start_date) > new Date(p_end_date)) {
+        return {
+          success: false,
+          error: "A data inicial não pode ser posterior à data final.",
+        };
+      }
+
+      const safeLimit = Number(limit);
+      const safeOffset = Number(offset);
+
+      if (!Number.isInteger(safeLimit) || safeLimit < 1 || safeLimit > 1000) {
+        return {
+          success: false,
+          error: "O limite deve ser um inteiro entre 1 e 1000.",
+        };
+      }
+
+      if (!Number.isInteger(safeOffset) || safeOffset < 0) {
+        return {
+          success: false,
+          error: "O offset deve ser um inteiro igual ou maior que zero.",
+        };
+      }
+
+      console.log("p_start_date:", p_start_date, "p_end_date:", p_end_date);
+
+      const { data, error } = await supabase.rpc("get_transfers", {
+        p_wallet_id: walletId ?? null,
+        p_employee_id: employeeId ?? null,
+        p_client_id: clientId ?? null,
+        p_start_date,
+        p_end_date,
+        p_limit: safeLimit,
+        p_offset: safeOffset,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data ?? [] };
+    } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao buscar transferências.",
       };
     }
-
-    return {
-      success: true,
-      data,
-    };
   },
 
   getTransferById: async (transferId) => {
