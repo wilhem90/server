@@ -177,6 +177,36 @@ const transferModel = {
       data,
     };
   },
+
+  updateTransfer: async ({
+    status,
+    transferId,
+    agentId,
+    transferExterneId,
+  }) => {
+    try {
+      const { data, error } = await supabase.rpc("update_transfer", {
+        p_status: status,
+        p_transfer_id: transferId,
+        p_agent_id: agentId,
+        p_transfer_externe_id: transferExterneId || null,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Erro ao atualizar transferência.",
+      };
+    }
+  },
 };
 
 export default transferModel;

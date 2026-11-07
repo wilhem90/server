@@ -21,4 +21,12 @@ router.get(
   controllerTransferMoney.getTransfers,
 );
 
+router.put(
+  "/update-transfer",
+  middlewareAuthProfil.validateAuth,
+  (req, res, next) =>
+    middlewareAuthProfil.checkPermission(req, res, next, "transfer", "delivered"),
+  controllerTransferMoney.updateTransfer,
+);
+
 export default router;

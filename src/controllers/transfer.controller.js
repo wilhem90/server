@@ -716,7 +716,7 @@ const controllerTransferMoney = {
       if (!requestTransfer.success) {
         return res.status(404).json({
           success: false,
-          message: requestTransfer.message || "Transferência não encontrada",
+          message: requestTransfer.error || "Transferência não encontrada",
         });
       }
 
@@ -728,7 +728,83 @@ const controllerTransferMoney = {
       console.error("Erro ao buscar transferência:", error);
       return res.status(500).json({
         success: false,
-        message: error.message,
+        message: error.message || "Erro interno ao buscar transferência",
+      });
+    }
+  },
+
+  updateTransfer: async (req, res) => {
+    try {
+      const { status, transferId, transferExterneId } = req.body;
+
+      const agentId = req.user?.id;
+
+      if (
+        ![
+          "pending",
+          "completed",
+          "processing",
+          "cancelled",
+          "success",
+          "disputing",
+          "refunded",
+          "failed",
+          "delivered",
+        ].includes(status)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Status inválido",
+        });
+      }
+
+      if (!transferId) {
+        return res.status(400).json({
+          success: false,
+          message: "ID da transferência é obrigatório",
+        });
+      }
+
+      if (!agentId) {
+        return res.status(400).json({
+          success: false,
+          message: "ID do agente é obrigatório",
+        });
+      }
+
+      if (status === "delivered" && !transferExterneId) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "ID externo da transferência é obrigatório ao marcar como entregue",
+        });
+      }
+
+      const updateResult = await transferModel.updateTransfer({
+        status,
+        transferId,
+        agentId,
+        transferExterneId,
+      });
+
+      console.log("updateResult:", updateResult);
+
+      if (!updateResult.success) {
+        return res.status(400).json({
+          success: false,
+          message: updateResult.error || "Erro ao atualizar transferência",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Transferência atualizada com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar transferência:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Erro interno ao atualizar transferência",
       });
     }
   },
