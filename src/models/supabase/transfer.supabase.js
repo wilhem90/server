@@ -131,8 +131,6 @@ const transferModel = {
         };
       }
 
-      console.log("p_start_date:", p_start_date, "p_end_date:", p_end_date);
-
       const { data, error } = await supabase.rpc("get_transfers", {
         p_wallet_id: walletId ?? null,
         p_employee_id: employeeId ?? null,
@@ -142,6 +140,8 @@ const transferModel = {
         p_limit: safeLimit,
         p_offset: safeOffset,
       });
+
+      console.log(data, error);
 
       if (error) {
         return { success: false, error: error.message };
@@ -184,6 +184,7 @@ const transferModel = {
     agentId,
     transferExterneId,
   }) => {
+    console.log({ status, transferId, agentId, transferExterneId });
     try {
       const { data, error } = await supabase.rpc("update_transfer", {
         p_status: status,
