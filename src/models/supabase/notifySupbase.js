@@ -26,7 +26,7 @@ const modelNotify = {
     }
     return {
       success: true,
-      data,
+      data: data?.[0]?.notifications || [],
     };
   },
 };
